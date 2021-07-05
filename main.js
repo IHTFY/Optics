@@ -13,6 +13,18 @@ ctx.fillRect(30, 30, 50, 50);
 ctx.fillStyle = '#00FFFF';
 ctx.fillRect(40, 40, 50, 50);
 
+ctx.strokeStyle = '#FFFF00';
+ctx.lineWidth = 4;
+ctx.beginPath();
+ctx.arc(75, 75, 50, 0, Math.PI * 2, true); // Outer circle
+ctx.moveTo(110, 75);
+ctx.arc(75, 75, 35, 0, Math.PI, false);  // Mouth (clockwise)
+ctx.moveTo(65, 65);
+ctx.arc(60, 65, 5, 0, Math.PI * 2, true);  // Left eye
+ctx.moveTo(95, 65);
+ctx.arc(90, 65, 5, 0, Math.PI * 2, true);  // Right eye
+ctx.stroke();
+
 
 let imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
 const numPixels = canvas.width * canvas.height;
