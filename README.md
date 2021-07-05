@@ -1,0 +1,1 @@
+Based on the card game, [Illusion](https://pandasaurusgames.com/products/illusion).
