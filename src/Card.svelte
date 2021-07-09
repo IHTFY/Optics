@@ -7,29 +7,52 @@
     const canvas = cardFace;
     const ctx = canvas.getContext("2d");
 
-    ctx.fillStyle = "#FF0000";
-    ctx.fillRect(10, 10, 50, 50);
+    ctx.fillStyle = "#CCC";
+    ctx.fillRect(0, 0, 150, 200);
 
-    ctx.fillStyle = "#0000FF";
-    ctx.fillRect(20, 20, 50, 50);
+    ctx.fillStyle = "#F00";
+    ctx.fillRect(
+      10 * Math.random(),
+      10 * Math.random(),
+      150 * Math.random(),
+      150 * Math.random()
+    );
 
-    ctx.fillStyle = "#FFFF00";
-    ctx.fillRect(30, 30, 50, 50);
+    ctx.fillStyle = "#00F";
+    ctx.fillRect(
+      20 * Math.random(),
+      20 * Math.random(),
+      150 * Math.random(),
+      150 * Math.random()
+    );
 
-    ctx.fillStyle = "#00FFFF";
-    ctx.fillRect(40, 40, 50, 50);
+    ctx.fillStyle = "#FF0";
+    ctx.fillRect(
+      30 * Math.random(),
+      30 * Math.random(),
+      150 * Math.random(),
+      150 * Math.random()
+    );
 
-    ctx.strokeStyle = "#FFFF00";
-    ctx.lineWidth = 4;
-    ctx.beginPath();
-    ctx.arc(75, 75, 50, 0, Math.PI * 2, true); // Outer circle
-    ctx.moveTo(110, 75);
-    ctx.arc(75, 75, 35, 0, Math.PI, false); // Mouth (clockwise)
-    ctx.moveTo(65, 65);
-    ctx.arc(60, 65, 5, 0, Math.PI * 2, true); // Left eye
-    ctx.moveTo(95, 65);
-    ctx.arc(90, 65, 5, 0, Math.PI * 2, true); // Right eye
-    ctx.stroke();
+    ctx.fillStyle = "#0FF";
+    ctx.fillRect(
+      40 * Math.random(),
+      40 * Math.random(),
+      150 * Math.random(),
+      150 * Math.random()
+    );
+
+    // ctx.strokeStyle = "#FF0";
+    // ctx.lineWidth = 4;
+    // ctx.beginPath();
+    // ctx.arc(75, 75, 50, 0, Math.PI * 2, true); // Outer circle
+    // ctx.moveTo(110, 75);
+    // ctx.arc(75, 75, 35, 0, Math.PI, false); // Mouth (clockwise)
+    // ctx.moveTo(65, 65);
+    // ctx.arc(60, 65, 5, 0, Math.PI * 2, true); // Left eye
+    // ctx.moveTo(95, 65);
+    // ctx.arc(90, 65, 5, 0, Math.PI * 2, true); // Right eye
+    // ctx.stroke();
 
     let imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
     const numPixels = canvas.width * canvas.height;
@@ -40,12 +63,12 @@
 
     for (let i = 0; i < numPixels; ++i) {
       // check green channel
-      if (imageData.data[i * 4 + 1]) {
-        imageData.data[i * 4 + 0] ? ++yellowCount : ++cyanCount;
+      if (imageData.data[i * 4 + 1] === 255) {
+        imageData.data[i * 4 + 0] === 255 ? ++yellowCount : ++cyanCount;
       } else {
-        if (imageData.data[i * 4 + 0]) {
+        if (imageData.data[i * 4 + 0] === 255) {
           ++redCount;
-        } else if (imageData.data[i * 4 + 2]) ++blueCount;
+        } else if (imageData.data[i * 4 + 2] === 255) ++blueCount;
       }
     }
 

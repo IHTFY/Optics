@@ -1,13 +1,32 @@
 <script>
   import Card from "./Card.svelte";
+  import Sortable from "sortablejs";
+  import { onMount } from "svelte";
+
+  onMount(() => {
+    Sortable.create(playedCards, { animation: 200 });
+  });
+
   export let name;
 </script>
 
 <main>
   <h1>Hello {name}!</h1>
   <h1>Eyeball</h1>
-  <Card />
-  <Card />
+  <div id="playedCards">
+    <Card />
+    <Card />
+    <Card />
+    <Card />
+    <Card />
+    <Card />
+    <Card />
+    <Card />
+    <Card />
+    <Card />
+    <Card />
+    <Card />
+  </div>
 </main>
 
 <style>
