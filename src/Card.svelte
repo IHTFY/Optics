@@ -8,7 +8,7 @@
   function lockin() {
     played = true;
     dispatch("message", {
-      text: "TODO",
+      text: "submitted",
     });
   }
 

@@ -2,9 +2,6 @@
   import Card from "./Card.svelte";
   import Sortable from "sortablejs";
   import { onMount } from "svelte";
-  import { nextCard } from "./store.js";
-
-  $nextCard = [{}];
 
   onMount(() => {
     Sortable.create(newCard, {
@@ -28,8 +25,10 @@
   });
 
   function addNewCard() {
-    var cardsPlayed = $nextCard.length;
-    $nextCard[cardsPlayed] = {};
+    const theNextCard = new Card({
+      target: document.getElementById("newCard"),
+    });
+    theNextCard.$on("message", addNewCard);
   }
 
   export let name;
@@ -40,9 +39,7 @@
   <h1>Eyeball</h1>
   <button id="challenge">Challenge</button>
   <div id="newCard">
-    {#each $nextCard as card}
-      <svelte:component this={Card} on:message={addNewCard} />
-    {/each}
+    <Card on:message={addNewCard} />
   </div>
   <div id="cardTable">
     <Card played={true} />
