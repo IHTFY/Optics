@@ -2,10 +2,35 @@
   import Card from "./Card.svelte";
   import Sortable from "sortablejs";
   import { onMount } from "svelte";
+  import { nextCard } from "./store.js";
+
+  $nextCard = [{}];
 
   onMount(() => {
-    Sortable.create(playedCards, { animation: 200 });
+    Sortable.create(newCard, {
+      group: {
+        name: "deck",
+        put: false,
+        pull: "table",
+      },
+      animation: 200,
+    });
+
+    Sortable.create(cardTable, {
+      group: {
+        name: "table",
+        put: "deck",
+        pull: false,
+      },
+      filter: ".played",
+      animation: 200,
+    });
   });
+
+  function addNewCard() {
+    var cardsPlayed = $nextCard.length;
+    $nextCard[cardsPlayed] = {};
+  }
 
   export let name;
 </script>
@@ -13,19 +38,14 @@
 <main>
   <h1>Hello {name}!</h1>
   <h1>Eyeball</h1>
-  <div id="playedCards">
-    <Card />
-    <Card />
-    <Card />
-    <Card />
-    <Card />
-    <Card />
-    <Card />
-    <Card />
-    <Card />
-    <Card />
-    <Card />
-    <Card />
+  <button id="challenge">Challenge</button>
+  <div id="newCard">
+    {#each $nextCard as card}
+      <svelte:component this={Card} on:message={addNewCard} />
+    {/each}
+  </div>
+  <div id="cardTable">
+    <Card played={true} />
   </div>
 </main>
 

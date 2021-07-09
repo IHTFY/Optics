@@ -1,5 +1,16 @@
 <script>
-  import { onMount } from "svelte";
+  import { createEventDispatcher, onMount } from "svelte";
+
+  export let played;
+
+  const dispatch = createEventDispatcher();
+
+  function lockin() {
+    played = true;
+    dispatch("message", {
+      text: "TODO",
+    });
+  }
 
   let cardFace;
 
@@ -7,37 +18,34 @@
     const canvas = cardFace;
     const ctx = canvas.getContext("2d");
 
-    ctx.fillStyle = "#CCC";
-    ctx.fillRect(0, 0, 150, 200);
-
     ctx.fillStyle = "#F00";
     ctx.fillRect(
-      10 * Math.random(),
-      10 * Math.random(),
+      50 * Math.random(),
+      50 * Math.random(),
       150 * Math.random(),
       150 * Math.random()
     );
 
     ctx.fillStyle = "#00F";
     ctx.fillRect(
-      20 * Math.random(),
-      20 * Math.random(),
+      50 * Math.random(),
+      50 * Math.random(),
       150 * Math.random(),
       150 * Math.random()
     );
 
     ctx.fillStyle = "#FF0";
     ctx.fillRect(
-      30 * Math.random(),
-      30 * Math.random(),
+      50 * Math.random(),
+      50 * Math.random(),
       150 * Math.random(),
       150 * Math.random()
     );
 
     ctx.fillStyle = "#0FF";
     ctx.fillRect(
-      40 * Math.random(),
-      40 * Math.random(),
+      50 * Math.random(),
+      50 * Math.random(),
       150 * Math.random(),
       150 * Math.random()
     );
@@ -72,7 +80,7 @@
       }
     }
 
-    console.log(redCount, blueCount, yellowCount, cyanCount);
+    // console.log(redCount, blueCount, yellowCount, cyanCount);
 
     const toPercent = (x) => Math.round((100 * x) / numPixels);
     console.log(
@@ -84,16 +92,36 @@
   });
 </script>
 
-<div class="card">
-  <canvas bind:this={cardFace} width="150px" height="200px" />
+<div class="card" class:played>
+  <canvas bind:this={cardFace} width="150px" height="240px" />
+  {#if !played}
+    <button on:click|once={lockin}>✓</button>
+  {/if}
 </div>
 
 <style>
   .card {
+    background-color: #eee;
     display: inline-block;
     width: 150px;
-    height: 200px;
-    border: 2px solid;
+    height: 240px;
+    border: 5px solid;
     border-radius: 5%;
+    border-color: orange;
+    /* overflow: hidden; */
+    margin: 5px;
+  }
+
+  .played {
+    border-color: #ccc;
+  }
+
+  button {
+    width: 50%;
+    background-color: transparent;
+    border: none;
+    color: white;
+    opacity: 0.8;
+    position: relative;
   }
 </style>
