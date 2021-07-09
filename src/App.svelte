@@ -30,12 +30,9 @@
     });
     theNextCard.$on("message", addNewCard);
   }
-
-  export let name;
 </script>
 
 <main>
-  <h1>Hello {name}!</h1>
   <h1>Eyeball</h1>
   <button id="challenge">Challenge</button>
   <div id="newCard">
