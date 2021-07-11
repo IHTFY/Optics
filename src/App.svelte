@@ -2,6 +2,7 @@
   import Card from "./Card.svelte";
   import Sortable from "sortablejs";
   import { onMount } from "svelte";
+  import { gameState } from "./stores";
 
   onMount(() => {
     Sortable.create(newCard, {
@@ -27,19 +28,42 @@
   function addNewCard() {
     const theNextCard = new Card({
       target: document.getElementById("newCard"),
-			props: {
-				played: false,
-			}
+      props: {
+        played: false,
+      },
     });
-    theNextCard.$on("message", addNewCard);
+    theNextCard.$on("lockedIn", addNewCard);
+  }
+
+  function handleChallenge() {
+    const challengeButton = document.getElementById("challenge");
+    if (challengeButton.textContent === "Challenge") {
+      const uncommitted = document.querySelector(
+        "#cardTable > .card:not(.played)"
+      );
+      if (uncommitted) {
+        document.getElementById("newCard").appendChild(uncommitted);
+      }
+      gameState.set("reveal");
+      challengeButton.textContent = "Clear Table";
+    } else {
+      gameState.set("");
+      challengeButton.textContent = "Challenge";
+      document
+        .querySelectorAll("#cardTable > .played")
+        .forEach((c) => c.remove());
+      const nextCard = document.querySelector("#newCard > .card");
+      document.getElementById("cardTable").appendChild(nextCard);
+      nextCard.querySelector("button").click();
+    }
   }
 </script>
 
 <main>
   <h1>Eyeball</h1>
-  <button id="challenge">Challenge</button>
+  <button id="challenge" on:click={handleChallenge}>Challenge</button>
   <div id="newCard">
-    <Card on:message={addNewCard} played={false}/>
+    <Card on:lockedIn={addNewCard} played={false} />
   </div>
   <div id="cardTable">
     <Card played={true} />

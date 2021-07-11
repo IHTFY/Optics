@@ -3,6 +3,14 @@ const BLUE = "#00F";
 const YELLOW = "#FF0";
 const CYAN = "#0FF";
 
+function rc() {
+  return [RED, BLUE, YELLOW, CYAN][Math.floor(Math.random() * 4)];
+}
+
+function rand(range, offset = 0) {
+  return Math.random() * range + offset;
+}
+
 export default function drawFace(canvas) {
   const ctx = canvas.getContext("2d");
 
@@ -13,7 +21,7 @@ export default function drawFace(canvas) {
 
   function smiley(color, x, y, r, a) {
     ctx.strokeStyle = color;
-    ctx.lineWidth = 4;
+    ctx.lineWidth = 0.2 * r;
     ctx.beginPath();
     ctx.arc(x, y, r, 0, Math.PI * 2, true); // Outer circle
     ctx.moveTo(x + 0.7 * r, y);
@@ -25,10 +33,10 @@ export default function drawFace(canvas) {
     ctx.stroke();
   }
 
-  function heart(color, x, y, r, a) {
+  function heart(color, x, y, w, h, a) {
     ctx.fillStyle = color;
     ctx.beginPath();
-    // TODO find params in terms of x,y,r
+    // TODO find params in terms of x,y,w,h,a
     ctx.moveTo(75, 40);
     ctx.bezierCurveTo(75, 37, 70, 25, 50, 25);
     ctx.bezierCurveTo(20, 25, 20, 62.5, 20, 62.5);
@@ -39,44 +47,15 @@ export default function drawFace(canvas) {
     ctx.fill();
   }
 
-  rect(RED, 0, 0, 100, 100);
+  rect(rc(), rand(100, 20), rand(100, 20), rand(100, 20), rand(100, 20));
 
-  smiley(CYAN, 35, 25, 30, 0);
+  // rect(RED, 0, 0, 100, 100);
 
-  heart(BLUE)
+  // smiley(CYAN, 35, 25, 30, 0);
+  // smiley(BLUE, 35, 25, 50, 0);
+  // smiley(RED, 35, 25, 70, 0);
+  // smiley(YELLOW, 35, 25, 90, 0);
 
-  // ctx.fillStyle = RED;
-  // ctx.fillRect(
-  //   50 * Math.random(),
-  //   50 * Math.random(),
-  //   150 * Math.random(),
-  //   150 * Math.random()
-  // );
-
-  // ctx.fillStyle = BLUE;
-  // ctx.fillRect(
-  //   50 * Math.random(),
-  //   50 * Math.random(),
-  //   150 * Math.random(),
-  //   150 * Math.random()
-  // );
-
-  // ctx.fillStyle = YELLOW;
-  // ctx.fillRect(
-  //   50 * Math.random(),
-  //   50 * Math.random(),
-  //   150 * Math.random(),
-  //   150 * Math.random()
-  // );
-
-  // ctx.fillStyle = CYAN;
-  // ctx.fillRect(
-  //   50 * Math.random(),
-  //   50 * Math.random(),
-  //   150 * Math.random(),
-  //   150 * Math.random()
-  // );
-
-
+  // heart(BLUE);
 
 }
