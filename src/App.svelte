@@ -27,6 +27,9 @@
   function addNewCard() {
     const theNextCard = new Card({
       target: document.getElementById("newCard"),
+			props: {
+				played: false,
+			}
     });
     theNextCard.$on("message", addNewCard);
   }
@@ -36,7 +39,7 @@
   <h1>Eyeball</h1>
   <button id="challenge">Challenge</button>
   <div id="newCard">
-    <Card on:message={addNewCard} />
+    <Card on:message={addNewCard} played={false}/>
   </div>
   <div id="cardTable">
     <Card played={true} />
