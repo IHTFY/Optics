@@ -7,20 +7,23 @@
     <title>Optics</title>
 
     <link rel="manifest" href="/manifest.json" />
-    <meta
-      name="description"
-      content="A Web Version of the Illusion Card Game"
-    />
+    <meta name="description" content="Optics: a game based on the Illusion card game" />
     <meta name="theme-color" content="#2F3BA2" />
 
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black" />
-    <meta name="apple-mobile-web-app-title" content="Eyeball" />
+    <meta name="apple-mobile-web-app-title" content="Optics" />
     <link rel="apple-touch-icon" href="/images/icons/icon-152x152.png" />
 
     <link rel="icon" type="image/png" href="/favicon.png" />
     <link rel="stylesheet" href="/global.css" />
     <link rel="stylesheet" href="/build/bundle.css" />
+
+    <!-- You can remove this is you don't want to make your PWA installable -->
+    <script
+      type="module"
+      src="https://cdn.jsdelivr.net/npm/@pwabuilder/pwainstall"
+    ></script>
 
     <script defer src="/build/bundle.js"></script>
     <style>
@@ -35,7 +38,6 @@
       <div>Oops! Javascript required here! Allow it and try again!</div>
     </noscript>
 
-    <script src="/scripts/install.js"></script>
     <script>
       if ("serviceWorker" in navigator) {
         window.addEventListener("load", () => {
