@@ -1,19 +1,12 @@
 <script>
-  import { createEventDispatcher, onMount } from "svelte";
   import drawFace from "./drawFace.js";
   import analyzeFace from "./analyzeFace.js";
   import { gameState } from "./stores";
+  import { onMount } from "svelte";
 
-  export let played;
+  export let played = false;
 
   let percentages;
-
-  const dispatch = createEventDispatcher();
-
-  function lockin() {
-    played = true;
-    dispatch("lockedIn");
-  }
 
   let cardFace;
 
@@ -30,14 +23,13 @@
   {#if $gameState === "reveal" && played}
     <div id="display">
       <!-- TODO make a pretty display. Overlay or below? -->
-      {JSON.stringify(percentages)}
+      <div>Red: {percentages.red}</div>
+      <div>Blue: {percentages.blue}</div>
+      <div>Yellow: {percentages.yellow}</div>
+      <div>Cyan: {percentages.cyan}</div>
     </div>
   {/if}
-
   <canvas bind:this={cardFace} width="150px" height="240px" />
-  {#if !played}
-    <button on:click|once={lockin}>✓</button>
-  {/if}
 </div>
 
 <style>
@@ -59,23 +51,21 @@
   }
 
   #display {
-    color: black;
+    display: table;
+    color: #ff3e00;
+    background-color: #00000040;
+
     position: absolute;
     width: 100%;
-    height: 100%;
-    overflow: hidden;
-  }
+    font-size: 24px;
+    font-weight: 600;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
 
-  button {
-    z-index: 1;
-    font-size: 40px;
-    width: 100%;
-    padding: 0;
-    margin: 0;
-    background-color: transparent;
-    border: none;
-    color: white;
-    opacity: 0.8;
-    position: relative;
+    border-radius: 5%;
+
+    user-select: none;
+    overflow: hidden;
   }
 </style>

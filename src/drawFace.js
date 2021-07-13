@@ -48,6 +48,9 @@ export default function drawFace(canvas) {
   }
 
   rect(rc(), rand(100, 20), rand(100, 20), rand(100, 20), rand(100, 20));
+  rect(rc(), rand(100, 20), rand(100, 20), rand(100, 20), rand(100, 20));
+  rect(rc(), rand(100, 20), rand(100, 20), rand(100, 20), rand(100, 20));
+  rect(rc(), rand(100, 20), rand(100, 20), rand(100, 20), rand(100, 20));
 
   // rect(RED, 0, 0, 100, 100);
 
