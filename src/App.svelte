@@ -28,7 +28,7 @@
 </script>
 
 <main>
-  <h1>Eyeball</h1>
+  <h1>Optics</h1>
   <button id="challenge" on:click={handleChallenge}>Challenge</button>
   <CardDeck />
   <CardTable />
