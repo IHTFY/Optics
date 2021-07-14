@@ -16,7 +16,11 @@ export default function drawFace(canvas) {
 
   function rect(color, x, y, w, h, a) {
     ctx.fillStyle = color;
-    ctx.fillRect(x, y, w, h);
+    ctx.translate(x, y)
+    ctx.rotate(a);
+    ctx.fillRect(0, 0, w, h);
+    ctx.rotate(-a);
+    ctx.translate(-x, -y);
   }
 
   function smiley(color, x, y, r, a) {
@@ -47,10 +51,11 @@ export default function drawFace(canvas) {
     ctx.fill();
   }
 
-  rect(rc(), rand(100, 20), rand(100, 20), rand(100, 20), rand(100, 20));
-  rect(rc(), rand(100, 20), rand(100, 20), rand(100, 20), rand(100, 20));
-  rect(rc(), rand(100, 20), rand(100, 20), rand(100, 20), rand(100, 20));
-  rect(rc(), rand(100, 20), rand(100, 20), rand(100, 20), rand(100, 20));
+
+  rect(rc(), rand(200), rand(300), rand(100, 20), rand(100, 20), rand(2 * Math.PI));
+  rect(rc(), rand(200), rand(300), rand(100, 20), rand(100, 20), rand(2 * Math.PI));
+  rect(rc(), rand(200), rand(300), rand(100, 20), rand(100, 20), rand(2 * Math.PI));
+  rect(rc(), rand(200), rand(300), rand(100, 20), rand(100, 20), rand(2 * Math.PI));
 
   // rect(RED, 0, 0, 100, 100);
 
