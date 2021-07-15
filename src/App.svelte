@@ -61,4 +61,11 @@
     font-size: 4em;
     font-weight: 100;
   }
+
+  #challenge {
+    font-size: 1.5em;
+    background-color: #ffa50080;
+    border-color: #ffa500;
+    color: white;
+  }
 </style>
