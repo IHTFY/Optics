@@ -3,12 +3,24 @@ const BLUE = "#00F";
 const YELLOW = "#FF0";
 const CYAN = "#0FF";
 
+const COLORS = [RED, BLUE, YELLOW, CYAN];
+
+const ri = a => a[Math.floor(Math.random() * a.length)];
+
 function rc() {
-  return [RED, BLUE, YELLOW, CYAN][Math.floor(Math.random() * 4)];
+  return ri(COLORS);
 }
 
 function rand(range, offset = 0) {
   return Math.random() * range + offset;
+}
+
+function shuffle(a) {
+  for (let i = 0; i < a.length - 1; i++) {
+    let j = i + Math.floor(Math.random() * (a.length - i));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
 }
 
 export default function drawFace(canvas) {
@@ -19,11 +31,10 @@ export default function drawFace(canvas) {
     ctx.translate(x, y)
     ctx.rotate(a);
     ctx.fillRect(0, 0, w, h);
-    ctx.rotate(-a);
-    ctx.translate(-x, -y);
+    ctx.resetTransform();
   }
 
-  function smiley(color, x, y, r, a) {
+  function smiley(color, x, y, r, a = 0) {
     ctx.strokeStyle = color;
     ctx.lineWidth = 0.2 * r;
     ctx.beginPath();
@@ -37,25 +48,34 @@ export default function drawFace(canvas) {
     ctx.stroke();
   }
 
-  function heart(color, x, y, w, h, a) {
+  function heart(color, x, y, w, h, a = 0) {
+
     ctx.fillStyle = color;
+    ctx.translate(x, y);
+    ctx.rotate(a);
+    ctx.scale(w / 10.944, h / 10.88);
+
     ctx.beginPath();
-    // TODO find params in terms of x,y,w,h,a
-    ctx.moveTo(75, 40);
-    ctx.bezierCurveTo(75, 37, 70, 25, 50, 25);
-    ctx.bezierCurveTo(20, 25, 20, 62.5, 20, 62.5);
-    ctx.bezierCurveTo(20, 80, 40, 102, 75, 120);
-    ctx.bezierCurveTo(110, 102, 130, 80, 130, 62.5);
-    ctx.bezierCurveTo(130, 62.5, 130, 25, 100, 25);
-    ctx.bezierCurveTo(85, 25, 75, 37, 75, 40);
+    ctx.moveTo(0, 5);
+    ctx.bezierCurveTo(10, -3, 4, -8, 0, -5);
+    ctx.bezierCurveTo(-4, -8, -10, -3, 0, 5);
+
     ctx.fill();
+    ctx.resetTransform();
   }
 
-  for (let c of [RED, BLUE, YELLOW, CYAN]) {
+
+  let tmp = shuffle(COLORS);
+  for (let i = 0; i < 4; i++) {
+    heart(tmp[i], 75, 130, 140 - 20 * i, 200 - 20 * i, 0);
+  }
+
+  for (let c of shuffle(COLORS)) {
     rect(c, rand(200), rand(300), rand(100, 20), rand(100, 20), rand(2 * Math.PI));
   }
 
-  rect(rc(), rand(200), rand(300), rand(100, 20), rand(100, 20), rand(2 * Math.PI));
+  // rect(rc(), rand(200), rand(300), rand(100, 20), rand(100, 20), rand(2 * Math.PI));
+  // heart(rc(), 100, 150, 100, 50, 0);
 
 
   // rect(RED, 0, 0, 100, 100);
