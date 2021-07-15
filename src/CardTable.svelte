@@ -1,7 +1,6 @@
 <script>
   import Sortable from "sortablejs";
   import { onMount } from "svelte";
-
   import Card from "./Card.svelte";
 
   onMount(() => {
@@ -23,6 +22,7 @@
 
 <style>
   #cardTable {
-    width: 100%;
+    display: inline-block;
+    /* width: 100%; */
   }
 </style>

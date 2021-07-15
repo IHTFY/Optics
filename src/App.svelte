@@ -1,7 +1,10 @@
 <script>
+  import { onMount } from "svelte";
+
   import CardDeck from "./CardDeck.svelte";
   import CardTable from "./CardTable.svelte";
-  import { gameState } from "./stores";
+  import ColorCard from "./ColorCard.svelte";
+  import { gameState, currentColor } from "./stores";
 
   function handleChallenge() {
     const challengeButton = document.getElementById("challenge");
@@ -23,15 +26,24 @@
       const nextCard = document.querySelector("#newCard > .card");
       document.getElementById("cardTable").appendChild(nextCard);
       document.querySelector("#newDeck > span").click();
+
+      currentColor.set(
+        ["red", "blue", "yellow", "cyan"][Math.floor(Math.random() * 4)]
+      );
     }
   }
+
+  $: $currentColor, () => console.log($currentColor);
 </script>
 
 <main>
   <h1>Optics</h1>
   <button id="challenge" on:click={handleChallenge}>Challenge</button>
   <CardDeck />
-  <CardTable />
+  <div>
+    <ColorCard />
+    <CardTable />
+  </div>
 </main>
 
 <style>
