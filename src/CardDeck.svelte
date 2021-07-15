@@ -39,17 +39,13 @@
 
 <style>
   span {
-    /* TODO Set all this. Center and pretty */
-    /* z-index: 1; */
-    /* position: absolute; */
-
     position: absolute;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
     user-select: none;
 
-    font-size: 40px;
+    font-size: 5em;
     background-color: transparent;
     border: none;
     color: white;

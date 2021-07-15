@@ -58,7 +58,7 @@
     width: 100%;
     font-size: 24px;
     font-weight: 600;
-    text-shadow: 1px 1px 2px white, -1px -1px 1px grey;
+    text-shadow: 1px 1px 2px grey, -1px -1px 2px white;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
