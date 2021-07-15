@@ -51,11 +51,12 @@ export default function drawFace(canvas) {
     ctx.fill();
   }
 
+  for (let c of [RED, BLUE, YELLOW, CYAN]) {
+    rect(c, rand(200), rand(300), rand(100, 20), rand(100, 20), rand(2 * Math.PI));
+  }
 
   rect(rc(), rand(200), rand(300), rand(100, 20), rand(100, 20), rand(2 * Math.PI));
-  rect(rc(), rand(200), rand(300), rand(100, 20), rand(100, 20), rand(2 * Math.PI));
-  rect(rc(), rand(200), rand(300), rand(100, 20), rand(100, 20), rand(2 * Math.PI));
-  rect(rc(), rand(200), rand(300), rand(100, 20), rand(100, 20), rand(2 * Math.PI));
+
 
   // rect(RED, 0, 0, 100, 100);
 
