@@ -64,15 +64,23 @@ export default function drawFace(canvas) {
     ctx.resetTransform();
   }
 
-
+  // if (rand(1) < 0.5) {
   let tmp = shuffle(COLORS);
+  let tmp2 = ri([0, 0, 0, 0.1, -0.1]);
   for (let i = 0; i < 4; i++) {
-    heart(tmp[i], 75, 130, 140 - 20 * i, 200 - 20 * i, 0);
+    heart(tmp[i], 75, 130, 140 - 20 * i, 200 - 20 * i, tmp2 * i);
   }
+  // }
 
+  // if (rand(1) > 0.2) {
   for (let c of shuffle(COLORS)) {
-    rect(c, rand(200), rand(300), rand(100, 20), rand(100, 20), rand(2 * Math.PI));
+    if (rand(1) < 0.5) {
+      rect(c, rand(200), rand(300), rand(100, 20), rand(100, 20), rand(2 * Math.PI));
+    } else {
+      rect(c, rand(200), rand(100), rand(100), rand(100), rand(2 * Math.PI));
+    }
   }
+  // }
 
   // rect(rc(), rand(200), rand(300), rand(100, 20), rand(100, 20), rand(2 * Math.PI));
   // heart(rc(), 100, 150, 100, 50, 0);
