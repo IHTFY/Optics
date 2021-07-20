@@ -23,10 +23,10 @@
   {#if $gameState === "reveal" && played}
     <div id="display">
       <!-- TODO make a pretty display. Overlay or below? -->
-      <div style="color: red;">Red: {percentages.red}%</div>
-      <div style="color: blue;">Blue: {percentages.blue}%</div>
-      <div style="color: yellow;">Yellow: {percentages.yellow}%</div>
-      <div style="color: cyan;">Cyan: {percentages.cyan}%</div>
+      <div style="color: red;">Red {percentages.red}%</div>
+      <div style="color: blue;">Blue {percentages.blue}%</div>
+      <div style="color: yellow;">Yellow {percentages.yellow}%</div>
+      <div style="color: cyan;">Cyan {percentages.cyan}%</div>
     </div>
   {/if}
   <canvas bind:this={cardFace} width="150px" height="240px" />
@@ -52,13 +52,13 @@
 
   #display {
     display: table;
-    background-color: #00000030;
-
+    background-color: #00000040;
+    text-transform: uppercase;
     position: absolute;
     width: 100%;
-    font-size: 24px;
-    font-weight: 600;
-    text-shadow: 1px 1px 2px grey, -1px -1px 2px white;
+    font-size: 22px;
+    font-weight: 700;
+    -webkit-text-stroke: 0.3px white;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
