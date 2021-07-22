@@ -56,7 +56,6 @@ function smiley(ctx, color, x, y, r) {
 }
 
 function heart(ctx, color, x, y, w, h, a = 0) {
-  ctx.fillStyle = color;
   ctx.translate(x, y);
   ctx.rotate(a);
   ctx.scale(w / 10.944, h / 10.88);
@@ -66,7 +65,9 @@ function heart(ctx, color, x, y, w, h, a = 0) {
   ctx.bezierCurveTo(10, -3, 4, -8, 0, -5);
   ctx.bezierCurveTo(-4, -8, -10, -3, 0, 5);
 
+  ctx.fillStyle = color;
   ctx.fill();
+
   ctx.resetTransform();
 }
 
