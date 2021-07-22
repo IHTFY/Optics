@@ -20,7 +20,7 @@ export default function analyzeFace(canvas) {
     }
   }
 
-  // console.log(redCount, blueCount, yellowCount, cyanCount);
+  console.log(redCount, blueCount, yellowCount, cyanCount, redCount + blueCount + yellowCount + cyanCount);
 
   const toPercent = (x) => Math.round((100 * x) / numPixels);
 
