@@ -21,15 +21,6 @@ const shuffle = a => {
   return a;
 }
 
-function realiasing(ctx) {
-  const imageData = ctx.getImageData(0, 0, 150, 240);
-  const data = imageData.data;
-  for (let i = 0; i < data.length; i++) {
-    data[i] = data[i] > 127 ? 255 : 0
-  }
-  ctx.putImageData(imageData, 0, 0);
-}
-
 
 // Drawing methods
 function rect(ctx, color, x, y, w, h, a = 0) {
@@ -131,6 +122,4 @@ export default function drawFace(canvas) {
 
   randomShapes(ctx);
   randomShapes(ctx);
-
-  realiasing(ctx);
 }

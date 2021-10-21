@@ -9,14 +9,23 @@ export default function analyzeFace(canvas) {
   let yellowCount = 0;
   let cyanCount = 0;
 
+  // function realiasing(ctx) {
+  //   const imageData = ctx.getImageData(0, 0, 150, 240);
+  //   const data = imageData.data;
+  //   for (let i = 0; i < data.length; i++) {
+  //     data[i] = data[i] > 127 ? 255 : 0
+  //   }
+  //   ctx.putImageData(imageData, 0, 0);
+  // }
+
   for (let i = 0; i < numPixels; ++i) {
     // check green channel
-    if (imageData.data[i * 4 + 1] === 255) {
-      imageData.data[i * 4 + 0] === 255 ? ++yellowCount : ++cyanCount;
+    if (imageData.data[i * 4 + 1] > 127) {
+      imageData.data[i * 4 + 0] > 127 ? ++yellowCount : ++cyanCount;
     } else {
-      if (imageData.data[i * 4 + 0] === 255) {
+      if (imageData.data[i * 4 + 0] > 127) {
         ++redCount;
-      } else if (imageData.data[i * 4 + 2] === 255) ++blueCount;
+      } else if (imageData.data[i * 4 + 2] > 127) ++blueCount;
     }
   }
 
