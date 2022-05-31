@@ -8,7 +8,9 @@ const FILES_TO_CACHE = [
   // '/offline.html',
   '/index.html',
   '/build/bundle.js',
+  '/build/bundle.js.map',
   '/build/bundle.css',
+  '/build/bundle.css.map',
 ];
 
 self.addEventListener('install', (evt) => {
