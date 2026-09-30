@@ -1,4 +1,7 @@
 /node_modules/
-/public/build/
+/dist/
+/dev-dist/
+/test-results/
+/playwright-report/
 
 .DS_Store

@@ -29,7 +29,7 @@
   });
 </script>
 
-<div><canvas bind:this={canvas} width="240px" height="150px" /></div>
+<div><canvas bind:this={canvas} width="240px" height="150px"></canvas></div>
 
 <style>
   div {
