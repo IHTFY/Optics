@@ -17,5 +17,6 @@ npm install
 npm run dev        # local dev server
 npm test           # unit tests
 npm run test:e2e   # browser tests (Playwright)
-npm run deploy     # build and publish to GitHub Pages
 ```
+
+Every push to `master` that passes CI is deployed to GitHub Pages automatically.
