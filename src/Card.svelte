@@ -29,7 +29,7 @@
       <div style="color: cyan;">Cyan {percentages.cyan}%</div>
     </div>
   {/if}
-  <canvas bind:this={cardFace} width="150px" height="240px" />
+  <canvas bind:this={cardFace} width="150px" height="240px"></canvas>
 </div>
 
 <style>

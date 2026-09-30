@@ -1,25 +1,24 @@
 <script>
   import Sortable from "sortablejs";
-  import { onMount } from "svelte";
+  import { onMount, mount } from "svelte";
 
   import Card from "./Card.svelte";
 
-  let theNextCard;
-  let played;
+  let nextCardProps;
+
+  function mountNextCard() {
+    const props = $state({ played: false });
+    nextCardProps = props;
+    mount(Card, { target: document.getElementById("newCard"), props });
+  }
 
   function addNewCard() {
-    theNextCard.$set({ played: true });
-
-    theNextCard = new Card({
-      target: document.getElementById("newCard"),
-      props: {
-        played: false,
-      },
-    });
+    nextCardProps.played = true;
+    mountNextCard();
   }
 
   onMount(() => {
-    Sortable.create(newCard, {
+    Sortable.create(document.getElementById("newCard"), {
       group: {
         name: "deck",
         put: "table",
@@ -27,14 +26,13 @@
       },
       animation: 150,
     });
+    mountNextCard();
   });
 </script>
 
 <div id="newDeck">
-  <span on:click={addNewCard}>✓</span>
-  <div id="newCard">
-    <Card bind:played bind:this={theNextCard} />
-  </div>
+  <span onclick={addNewCard}>✓</span>
+  <div id="newCard"></div>
 </div>
 
 <style>

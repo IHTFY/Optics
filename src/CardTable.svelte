@@ -4,7 +4,7 @@
   import Card from "./Card.svelte";
 
   onMount(() => {
-    Sortable.create(cardTable, {
+    Sortable.create(document.getElementById("cardTable"), {
       group: {
         name: "table",
         put: "deck",
