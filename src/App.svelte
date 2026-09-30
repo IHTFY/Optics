@@ -437,7 +437,10 @@
   }
 
   button:disabled {
-    opacity: 0.35;
+    background: transparent;
+    border-color: #ffffff1f;
+    color: #ffffff4d;
+    box-shadow: none;
     cursor: default;
   }
 
@@ -450,10 +453,6 @@
     background: var(--accent);
     color: #1d1400;
     box-shadow: 0 6px 18px #ff9f1c33;
-  }
-
-  .primary:disabled {
-    box-shadow: none;
   }
 
   .secondary {
