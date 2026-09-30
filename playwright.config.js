@@ -3,10 +3,10 @@ import { defineConfig, devices } from "@playwright/test";
 export default defineConfig({
   testDir: "e2e",
   fullyParallel: true,
-  use: { baseURL: "http://localhost:5199" },
+  use: { baseURL: "http://localhost:5301" },
   webServer: {
-    command: "npx vite --port 5199 --strictPort",
-    url: "http://localhost:5199",
+    command: "npx vite --port 5301 --strictPort",
+    url: "http://localhost:5301",
     reuseExistingServer: !process.env.CI,
   },
   projects: [
