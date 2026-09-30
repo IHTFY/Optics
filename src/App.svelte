@@ -29,7 +29,8 @@
     css: (t) => `opacity: ${t}; transform: translate(-50%, ${(1 - t) * -12}px) scale(${0.7 + 0.3 * t});`,
   });
 
-  const revealDelay = $derived(Math.min(1600, game.line.length * 90 + 350));
+  // The arrow bends into a graph as the amounts show.
+  const graphDelay = $derived(Math.min(1250, game.line.length * 90));
 
   // Cards shake first, then get knocked out of line; later toggles are quicker.
   let toggled = $state(false);
@@ -258,7 +259,13 @@
   </header>
 
   <section class="board">
-    <Wedge color={game.target} result={game.result} delay={revealDelay} />
+    <Wedge
+      color={game.target}
+      values={game.result ? game.row.map((item) => item.card.counts[game.target]) : null}
+      perfect={game.result?.correct}
+      line={lineEl}
+      delay={graphDelay}
+    />
     <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
     <div class="line" class:choosing={game.phase === "play" && game.pending} bind:this={lineEl} onclick={onLineClick}>
       {#each game.row as item, i (item.card.id)}
@@ -442,6 +449,7 @@
   }
 
   .line {
+    position: relative;
     flex: 1 1 auto;
     min-height: 0;
     max-height: calc(var(--card-h) + var(--pad-top) + var(--pad-bottom));

@@ -100,6 +100,23 @@ test("keyboard: arrows move, enter places, c challenges", async ({ page, isMobil
   await expect(page.getByRole("button", { name: "Next round" })).toBeVisible();
 });
 
+/** Once the arrow has become a graph, its height (up is positive) above each visible card. */
+async function readGraph(page) {
+  await expect(page.locator(".wedge")).toHaveAttribute("data-state", "graph");
+  return page.evaluate(() => {
+    const svg = document.querySelector(".wedge svg").getBoundingClientRect();
+    const ends = [...document.querySelectorAll(".wedge svg > line")].map((l) => [
+      svg.left + l.x2.baseVal.value,
+      svg.top + l.y2.baseVal.value,
+    ]);
+    return [...document.querySelectorAll(".line .slot")].map((slot) => {
+      const r = slot.getBoundingClientRect();
+      const end = ends.find(([x]) => Math.abs(x - (r.left + r.width / 2)) < 1);
+      return end ? -end[1] : null;
+    });
+  });
+}
+
 /** Read the revealed target percentages and verdict of each card in the line. */
 async function readReveal(page) {
   await expect(page.locator(".line .stats").first()).toBeVisible();
@@ -129,7 +146,13 @@ test("a correctly ordered line is judged correct", async ({ page }) => {
   const cards = await readReveal(page);
   expect(cards.every((c) => c.good)).toBe(true);
   for (let i = 0; i < cards.length - 1; i++) expect(cards[i].pct).toBeLessThanOrEqual(cards[i + 1].pct);
-  await expect(page.locator(".verdict:not(.bad)")).toBeVisible();
+  // The arrow graphs the amounts: never dropping, and it shines.
+  const graph = await readGraph(page);
+  expect(graph.filter((y) => y !== null).length).toBeGreaterThanOrEqual(2);
+  for (let i = 0; i < graph.length - 1; i++) {
+    if (graph[i] !== null && graph[i + 1] !== null) expect(graph[i + 1]).toBeGreaterThanOrEqual(graph[i] - 0.01);
+  }
+  await expect(page.locator(".wedge .sheen")).toHaveCount(1);
 });
 
 test("a misordered line is judged wrong and flags the right cards", async ({ page }) => {
@@ -157,7 +180,14 @@ test("a misordered line is judged wrong and flags the right cards", async ({ pag
     expect(cards[i].bad).toBe(outOfOrder);
     expect(cards[i].good).toBe(!outOfOrder);
   }
-  await expect(page.locator(".verdict.bad")).toBeVisible();
+  // The arrow graphs the amounts: it drops exactly where the order breaks.
+  const graph = await readGraph(page);
+  for (let i = 0; i < exact.length - 1; i++) {
+    if (graph[i] === null || graph[i + 1] === null) continue;
+    if (exact[i] > exact[i + 1]) expect(graph[i + 1]).toBeLessThan(graph[i]);
+    else expect(graph[i + 1]).toBeGreaterThanOrEqual(graph[i] - 0.01);
+  }
+  await expect(page.locator(".wedge .sheen")).toHaveCount(0);
 
   // One ✕ between each out-of-order pair.
   const clashes = await page.locator(".line .slot").evaluateAll((slots) => slots.map((s) => !!s.querySelector(".clash")));
@@ -173,6 +203,8 @@ test("a misordered line is judged wrong and flags the right cards", async ({ pag
   const sorted = (await readReveal(page)).map((c) => c.pct);
   expect(sorted).toEqual([...sorted].sort((a, b) => a - b));
   expect([...(await ids())].sort()).toEqual([...played].sort());
+  const rising = (ys) => ys.every((y, i) => i === 0 || y === null || ys[i - 1] === null || y >= ys[i - 1] - 0.01);
+  await expect.poll(async () => rising(await readGraph(page))).toBe(true);
   await page.getByRole("button", { name: "Played" }).click();
   await expect.poll(ids).toEqual(played);
   await expect(page.locator(".clash")).toHaveCount(clashes.filter(Boolean).length);
@@ -197,7 +229,7 @@ test("a correct line has no sorted view", async ({ page }) => {
   });
   await placeBtn(page).click();
   await challengeBtn(page).click();
-  await expect(page.locator(".verdict:not(.bad)")).toBeVisible();
+  await expect(page.locator(".wedge")).toHaveAttribute("data-state", "graph");
   await expect(page.getByRole("button", { name: "Sorted" })).toHaveCount(0);
 });
 
@@ -215,7 +247,7 @@ test("challenge returns an unplaced card to the deck; next round resets", async 
   await page.getByRole("button", { name: "Next round" }).click();
   await expect(lineCards(page)).toHaveCount(1);
   await expect(placeBtn(page)).toHaveCount(0);
-  await expect(page.locator(".verdict")).toHaveCount(0);
+  await expect(page.locator(".wedge")).toHaveAttribute("data-state", "flat");
 });
 
 test("layout fits the viewport in portrait and landscape", async ({ page }) => {

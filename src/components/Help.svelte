@@ -58,12 +58,14 @@
     </li>
     <li>
       <svg viewBox="0 0 150 100" aria-hidden="true">
+        <polyline points="2,23 25,21 75,5 125,16 134,16" fill="none" stroke={fill} stroke-width="3" stroke-linejoin="round" stroke-linecap="round" />
+        <polygon points="133,11 145,16 133,21" fill={fill} />
         {@render card(5, 30, 0.2)}
         {@render card(55, 36, 0.7, 5)}
         {@render card(105, 36, 0.35, -5)}
         {@render cross(100, 30)}
       </svg>
-      <p><b>Challenge</b> to reveal the exact amounts. <span class="x">✕</span> marks each pair in the wrong order.</p>
+      <p><b>Challenge</b> to reveal the exact amounts. The arrow graphs them; each drop, marked <span class="x">✕</span>, is a pair in the wrong order.</p>
     </li>
   </ol>
 
