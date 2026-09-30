@@ -5,8 +5,8 @@
   import { PALETTE } from "../lib/colors.js";
   import { ms } from "../lib/motion.js";
 
-  let { card, target, pending = false, reveal = false, verdict = null, order = 0, ghost = false } =
-    $props();
+  let { card, target, pending = false, reveal = false, verdict = null, order = 0, ghost = false,
+    knock = null, knockDelay = 0, dim = false } = $props();
 
   const others = $derived(COLORS.filter((c) => c !== target));
 </script>
@@ -18,7 +18,11 @@
   class:ghost
   class:good={verdict === "good"}
   class:bad={verdict === "bad"}
+  class:knocked={knock !== null}
+  class:dim
   style:--order={order}
+  style:--knock={knock}
+  style:--knock-delay="{ms(knockDelay)}ms"
 >
   <img src={card.src} alt="" draggable="false" />
   {#if reveal}
@@ -56,7 +60,10 @@
     transition:
       transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1.3),
       box-shadow 220ms ease,
-      outline-color 220ms ease;
+      outline-color 220ms ease,
+      translate 480ms cubic-bezier(0.3, 1.5, 0.5, 1),
+      rotate 480ms cubic-bezier(0.3, 1.5, 0.5, 1),
+      opacity 300ms ease;
     outline: 3px solid transparent;
     outline-offset: 3px;
     user-select: none;
@@ -95,7 +102,22 @@
 
   .bad {
     outline-color: var(--bad);
+    outline-width: 4px;
+    box-shadow:
+      0 0 0 3cqi var(--bad),
+      0 4px 14px #0006;
     animation: shake 480ms calc(var(--order) * 90ms + 300ms) both;
+  }
+
+  /* Knocked out of line, leaning the way it should have gone. */
+  .knocked {
+    translate: calc(var(--knock) * 3%) 5%;
+    rotate: calc(var(--knock) * 3deg);
+    transition-delay: 0ms, 0ms, 0ms, var(--knock-delay), var(--knock-delay), 0ms;
+  }
+
+  .dim {
+    opacity: 0.4;
   }
 
   .stats {
