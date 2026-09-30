@@ -1,0 +1,199 @@
+import { expect, test } from "@playwright/test";
+
+const placeBtn = (page) => page.getByRole("button", { name: "Place" });
+const challengeBtn = (page) => page.getByRole("button", { name: "Challenge" });
+const lineCards = (page) => page.locator(".line .slot");
+
+async function start(page) {
+  await page.goto("/");
+  await expect(lineCards(page)).toHaveCount(1);
+  await expect(page.locator(".deck .slot")).toHaveCount(1);
+}
+
+/** Tap the line at a horizontal fraction of its width. */
+async function tapLine(page, fraction) {
+  const box = await page.locator(".line").boundingBox();
+  await page.mouse.click(box.x + box.width * fraction, box.y + box.height / 2);
+}
+
+test("tap to position, then place", async ({ page }) => {
+  await start(page);
+  await expect(placeBtn(page)).toBeDisabled();
+  await expect(challengeBtn(page)).toBeDisabled();
+
+  await tapLine(page, 0.95);
+  await expect(page.locator(".line .slot.is-pending")).toHaveCount(1);
+  await expect(page.locator(".deck .slot")).toHaveCount(0);
+  await expect(placeBtn(page)).toBeEnabled();
+
+  await placeBtn(page).click();
+  await expect(lineCards(page)).toHaveCount(2);
+  await expect(page.locator(".line .slot.is-pending")).toHaveCount(0);
+  await expect(page.locator(".deck .slot")).toHaveCount(1);
+  await expect(challengeBtn(page)).toBeEnabled();
+});
+
+test("tapping the deck takes the card back", async ({ page }) => {
+  await start(page);
+  await tapLine(page, 0.95);
+  await expect(page.locator(".line .slot.is-pending")).toHaveCount(1);
+  await page.locator(".deck").click();
+  await expect(page.locator(".deck .slot")).toHaveCount(1);
+  await expect(placeBtn(page)).toBeDisabled();
+});
+
+test("dragging the card into the line", async ({ page, isMobile }) => {
+  test.skip(isMobile, "mouse drag is covered on desktop; touch drag below");
+  await start(page);
+  const card = await page.locator(".deck .slot").boundingBox();
+  const line = await page.locator(".line").boundingBox();
+  await page.mouse.move(card.x + card.width / 2, card.y + card.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(line.x + 5, line.y + line.height / 2, { steps: 12 });
+  await expect(page.locator(".drag-ghost")).toHaveCount(1);
+  await page.mouse.up();
+  await expect(page.locator(".drag-ghost")).toHaveCount(0);
+  // Dropped left of the only card: pending goes first.
+  await expect(lineCards(page).first()).toHaveClass(/is-pending/);
+});
+
+test("touch dragging the card into the line", async ({ page, isMobile, browserName }) => {
+  test.skip(!isMobile || browserName !== "chromium", "needs CDP touch input");
+  await start(page);
+  const cdp = await page.context().newCDPSession(page);
+  const card = await page.locator(".deck .slot").boundingBox();
+  const line = await page.locator(".line").boundingBox();
+  const touch = (type, x, y) =>
+    cdp.send("Input.dispatchTouchEvent", {
+      type,
+      touchPoints: type === "touchEnd" ? [] : [{ x, y }],
+    });
+  let x = card.x + card.width / 2;
+  let y = card.y + card.height / 2;
+  await touch("touchStart", x, y);
+  const tx = line.x + line.width - 10;
+  const ty = line.y + line.height / 2;
+  for (let i = 1; i <= 15; i++) {
+    await touch("touchMove", x + ((tx - x) * i) / 15, y + ((ty - y) * i) / 15);
+    await page.waitForTimeout(16);
+  }
+  await touch("touchEnd");
+  await expect(page.locator(".drag-ghost")).toHaveCount(0);
+  await expect(lineCards(page).last()).toHaveClass(/is-pending/);
+});
+
+test("keyboard: arrows move, enter places, c challenges", async ({ page, isMobile }) => {
+  test.skip(isMobile);
+  await start(page);
+  await page.keyboard.press("ArrowRight");
+  await expect(lineCards(page).first()).toHaveClass(/is-pending/);
+  await page.keyboard.press("ArrowRight");
+  await expect(lineCards(page).last()).toHaveClass(/is-pending/);
+  await page.keyboard.press("Enter");
+  await expect(lineCards(page)).toHaveCount(2);
+  await page.keyboard.press("c");
+  await expect(page.getByRole("button", { name: "Next round" })).toBeVisible();
+});
+
+/** Read the revealed target percentages and verdict of each card in the line. */
+async function readReveal(page) {
+  await expect(page.locator(".line .stats").first()).toBeVisible();
+  return page.locator(".line .slot").evaluateAll((slots) =>
+    slots.map((s) => ({
+      pct: parseFloat(s.querySelector(".main").textContent),
+      bad: !!s.querySelector(".face.bad"),
+      good: !!s.querySelector(".face.good"),
+    }))
+  );
+}
+
+test("a correctly ordered line is judged correct", async ({ page }) => {
+  await start(page);
+  // Use the exact counts (dev hook) to place every card correctly.
+  for (let i = 0; i < 5; i++) {
+    await page.evaluate(async () => {
+      const { correctSlots } = await import("/src/lib/order.js");
+      const g = window.__game;
+      const amounts = g.line.map((c) => c.counts[g.target]);
+      g.moveTo(correctSlots(amounts, g.pending.counts[g.target])[0]);
+    });
+    await placeBtn(page).click();
+    await expect(lineCards(page)).toHaveCount(i + 2);
+  }
+  await challengeBtn(page).click();
+  const cards = await readReveal(page);
+  expect(cards.every((c) => c.good)).toBe(true);
+  for (let i = 0; i < cards.length - 1; i++) expect(cards[i].pct).toBeLessThanOrEqual(cards[i + 1].pct);
+  await expect(page.locator(".verdict:not(.bad)")).toBeVisible();
+});
+
+test("a misordered line is judged wrong and flags the right cards", async ({ page }) => {
+  await start(page);
+  // Always place at the left edge; with random cards this is soon wrong.
+  let wrong = false;
+  for (let i = 0; i < 12 && !wrong; i++) {
+    await tapLine(page, 0.01);
+    await placeBtn(page).click();
+    wrong = await page.evaluate(() => {
+      const g = window.__game;
+      const a = g.line.map((c) => c.counts[g.target]);
+      return a.some((v, j) => j > 0 && a[j - 1] > v);
+    });
+  }
+  expect(wrong).toBe(true);
+  await challengeBtn(page).click();
+  const cards = await readReveal(page);
+  const exact = await page.evaluate(() => {
+    const g = window.__game;
+    return g.line.map((c) => c.counts[g.target]);
+  });
+  for (let i = 0; i < exact.length; i++) {
+    const outOfOrder = (i > 0 && exact[i - 1] > exact[i]) || (i < exact.length - 1 && exact[i] > exact[i + 1]);
+    expect(cards[i].bad).toBe(outOfOrder);
+    expect(cards[i].good).toBe(!outOfOrder);
+  }
+  await expect(page.locator(".verdict.bad")).toBeVisible();
+});
+
+test("challenge returns an unplaced card to the deck; next round resets", async ({ page }) => {
+  await start(page);
+  await tapLine(page, 0.95);
+  await placeBtn(page).click();
+  await tapLine(page, 0.95);
+  await expect(page.locator(".line .slot.is-pending")).toHaveCount(1);
+  await challengeBtn(page).click();
+  await expect(page.locator(".line .slot.is-pending")).toHaveCount(0);
+  await expect(lineCards(page)).toHaveCount(2);
+  await expect(page.locator(".deck .slot")).toHaveCount(1);
+
+  await page.getByRole("button", { name: "Next round" }).click();
+  await expect(lineCards(page)).toHaveCount(1);
+  await expect(placeBtn(page)).toBeDisabled();
+  await expect(page.locator(".verdict")).toHaveCount(0);
+});
+
+test("layout fits the viewport in portrait and landscape", async ({ page }) => {
+  for (const size of [
+    { width: 360, height: 640 },
+    { width: 390, height: 844 },
+    { width: 844, height: 390 },
+    { width: 640, height: 360 },
+    { width: 768, height: 1024 },
+    { width: 1440, height: 900 },
+  ]) {
+    await page.setViewportSize(size);
+    await page.goto("/");
+    await expect(lineCards(page)).toHaveCount(1);
+    const overflow = await page.evaluate(() => ({
+      x: document.documentElement.scrollWidth > innerWidth,
+      y: document.documentElement.scrollHeight > innerHeight,
+    }));
+    expect(overflow, JSON.stringify(size)).toEqual({ x: false, y: false });
+    for (const el of [placeBtn(page), challengeBtn(page), page.locator(".deck"), page.locator(".line")]) {
+      const b = await el.boundingBox();
+      expect(b.x >= 0 && b.y >= 0 && b.x + b.width <= size.width + 1 && b.y + b.height <= size.height + 1, JSON.stringify(size)).toBe(true);
+    }
+    const card = await lineCards(page).first().boundingBox();
+    expect(card.height, JSON.stringify(size)).toBeGreaterThan(110);
+  }
+});
