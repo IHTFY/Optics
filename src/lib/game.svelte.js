@@ -14,11 +14,17 @@ export class Game {
   /** "loading" | "play" | "reveal" */
   phase = $state("loading");
   result = $state.raw(null);
+  /** During a reveal, show the line in its correct order instead of as played. */
+  sorted = $state(false);
 
   #queue = [];
 
   /** The line as displayed, including the pending card when it has a slot. */
   row = $derived.by(() => {
+    if (this.phase === "reveal" && this.sorted) {
+      const amount = (card) => card.counts[this.target];
+      return [...this.line].sort((a, b) => amount(a) - amount(b)).map((card) => ({ card, pending: false }));
+    }
     const row = this.line.map((card) => ({ card, pending: false }));
     if (this.pending && this.slot !== null) {
       row.splice(this.slot, 0, { card: this.pending, pending: true });
@@ -28,6 +34,9 @@ export class Game {
 
   canPlace = $derived(this.phase === "play" && this.pending !== null && this.slot !== null);
   canChallenge = $derived(this.phase === "play" && this.line.length >= 2);
+
+  /** Ids of the cards in an out-of-order pair, once revealed. */
+  badIds = $derived(new Set(this.result ? [...this.result.bad].map((i) => this.line[i].id) : []));
 
   #draw() {
     while (this.#queue.length < PREFETCH + 1) this.#queue.push(createCard());
@@ -40,6 +49,7 @@ export class Game {
 
     this.phase = "loading";
     this.result = null;
+    this.sorted = false;
     this.slot = null;
     this.line = [];
     this.pending = null;
@@ -83,7 +93,12 @@ export class Game {
     if (!this.canChallenge) return;
     this.slot = null;
     this.result = checkLine(this.line.map((card) => card.counts[this.target]));
+    this.sorted = false;
     this.phase = "reveal";
+  }
+
+  toggleSorted() {
+    if (this.phase === "reveal" && this.result && !this.result.correct) this.sorted = !this.sorted;
   }
 }
 

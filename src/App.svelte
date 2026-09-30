@@ -2,8 +2,10 @@
   import { onMount, tick } from "svelte";
   import { flip } from "svelte/animate";
   import Card from "./components/Card.svelte";
+  import Help from "./components/Help.svelte";
   import Wedge from "./components/Wedge.svelte";
   import { Game } from "./lib/game.svelte.js";
+  import { backOut } from "svelte/easing";
   import { ms, receive, send } from "./lib/motion.js";
 
   const game = new Game();
@@ -17,7 +19,41 @@
   let drag = $state(null);
   let suppressClick = false;
 
+  let help = $state();
+
+  // Appears once the card has landed in the line.
+  const placeIn = (node, params, { direction }) => ({
+    delay: direction === "in" ? ms(220) : 0,
+    duration: ms(260),
+    easing: backOut,
+    css: (t) => `opacity: ${t}; transform: translate(-50%, ${(1 - t) * -12}px) scale(${0.7 + 0.3 * t});`,
+  });
+
   const revealDelay = $derived(Math.min(1600, game.line.length * 90 + 350));
+
+  // Cards shake first, then get knocked out of line; later toggles are quicker.
+  let toggled = $state(false);
+  const knockDelay = (i) => (toggled ? 120 : i * 90 + 750);
+
+  function toggleSorted() {
+    toggled = true;
+    game.toggleSorted();
+  }
+
+  /** Target amounts of the line in played order. */
+  const amounts = $derived(game.line.map((card) => card.counts[game.target]));
+
+  /** For each played position, whether it is out of order with its right neighbour. */
+  const clashes = $derived(
+    game.result && !game.sorted ? amounts.map((a, i) => i < amounts.length - 1 && a > amounts[i + 1]) : []
+  );
+
+  /** How a misplaced card is knocked: away from each card it clashes with, or null. */
+  function knock(i) {
+    if (!clashes.length || !game.result.bad.has(i)) return null;
+    return (clashes[i - 1] ? 1 : 0) - (clashes[i] ? 1 : 0);
+  }
+
 
   onMount(() => {
     game.newRound();
@@ -48,6 +84,7 @@
   // After a challenge, bring the first misplaced card into view.
   $effect(() => {
     if (!game.result || game.result.correct) return;
+    toggled = false;
     const first = Math.min(...game.result.bad);
     tick().then(() => {
       lineEl.children[first]?.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
@@ -179,7 +216,7 @@
   }
 
   function onKeydown(e) {
-    if (e.target.closest?.("input, textarea") || e.metaKey || e.ctrlKey || e.altKey) return;
+    if (e.target.closest?.("input, textarea, dialog") || e.metaKey || e.ctrlKey || e.altKey) return;
     const key = e.key.toLowerCase();
     if (game.phase === "play") {
       if (key === "arrowleft") game.step(-1);
@@ -190,12 +227,13 @@
       else return;
     } else if (game.phase === "reveal") {
       if (key === "enter" && !e.target.closest?.("button")) game.newRound();
+      else if (key === "s") toggleSorted();
       else return;
     } else return;
     e.preventDefault();
   }
 
-  const verdict = (i) => (game.result ? (game.result.bad.has(i) ? "bad" : "good") : null);
+  const verdict = (card) => (game.result ? (game.badIds.has(card.id) ? "bad" : "good") : null);
 </script>
 
 <svelte:window onkeydown={onKeydown} />
@@ -203,7 +241,14 @@
 <div class="app" class:dragging={drag}>
   <header>
     <h1>Optics</h1>
-    <a aria-label="GitHub" href="https://github.com/IHTFY/optics">
+    <button class="icon" aria-label="How to play" onclick={() => help.open()}>
+      <svg viewBox="0 0 24 24" width="24" height="24">
+        <circle cx="12" cy="12" r="10.5" />
+        <path d="M9.2 9.3a2.9 2.9 0 1 1 3.9 2.7c-.7.3-1.1.9-1.1 1.6v.6" />
+        <circle class="dot" cx="12" cy="17.4" r="1.2" />
+      </svg>
+    </button>
+    <a class="icon" aria-label="GitHub" href="https://github.com/IHTFY/optics">
       <svg viewBox="0 0 32 32" width="22" height="22" fill="currentColor">
         <path
           d="M16 0C7.2 0 0 7.2 0 16c0 7.1 4.6 13 11 15 .8 .14 1.1-.34 1.1-.76 0-.38-.02-1.6-.02-3-4 .74-5.1-.98-5.4-1.9-.18-.46-.96-1.9-1.6-2.3-.56-.3-1.4-1-.02-1.1 1.3-.02 2.2 1.2 2.5 1.6 1.4 2.4 3.7 1.7 4.7 1.3 .14-1 .56-1.7 1-2.1-3.6-.4-7.3-1.8-7.3-7.9 0-1.7 .62-3.2 1.6-4.3-.16-.4-.72-2 .16-4.2 0 0 1.3-.42 4.4 1.6 1.3-.36 2.6-.54 4-.54 1.4 0 2.7 .18 4 .54 3.1-2.1 4.4-1.6 4.4-1.6 .88 2.2 .32 3.8 .16 4.2 1 1.1 1.6 2.5 1.6 4.3 0 6.1-3.7 7.5-7.3 7.9 .58 .5 1.1 1.5 1.1 3 0 2.1-.02 3.9-.02 4.4 0 .42 .3 .92 1.1 .76A16 16 0 0 0 32 16c0-8.8-7.2-16-16-16z"
@@ -221,7 +266,7 @@
           class="slot"
           class:is-pending={item.pending}
           class:lifted={item.pending && drag}
-          animate:flip={{ duration: ms(280) }}
+          animate:flip={{ duration: ms(game.phase === "reveal" ? 650 : 280) }}
           in:receive={{ key: item.card.id }}
           out:send={{ key: item.card.id, delay: i * 40 }}
           onpointerdown={item.pending ? onPointerDown : undefined}
@@ -231,9 +276,30 @@
             target={game.target}
             pending={item.pending}
             reveal={game.phase === "reveal"}
-            verdict={verdict(i)}
+            verdict={verdict(item.card)}
             order={i}
+            knock={knock(i)}
+            knockDelay={knockDelay(i)}
+            dim={game.sorted && !game.badIds.has(item.card.id)}
           />
+          {#if clashes[i]}
+            <span class="clash" style:animation-delay="{ms(i * 90 + 500)}ms" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M7 7l10 10M17 7L7 17" /></svg>
+            </span>
+          {/if}
+          {#if item.pending && !drag}
+            <button
+              class="place"
+              transition:placeIn
+              onpointerdown={(e) => e.stopPropagation()}
+              onclick={(e) => {
+                e.stopPropagation();
+                game.place();
+              }}
+            >
+              Place
+            </button>
+          {/if}
         </div>
       {/each}
     </div>
@@ -258,15 +324,22 @@
 
     <div class="controls">
       {#if game.phase === "reveal"}
+        {#if game.result && !game.result.correct}
+          <div class="toggle" role="group" aria-label="Line order">
+            <button aria-pressed={!game.sorted} onclick={() => game.sorted && toggleSorted()}>Played</button>
+            <button aria-pressed={game.sorted} onclick={() => !game.sorted && toggleSorted()}>Sorted</button>
+          </div>
+        {/if}
         <button class="primary" onclick={() => game.newRound()}>Next round</button>
       {:else}
-        <button class="primary" disabled={!game.canPlace} onclick={() => game.place()}>Place</button>
         <button class="secondary" disabled={!game.canChallenge} onclick={() => game.challenge()}>
           Challenge
         </button>
       {/if}
     </div>
   </section>
+
+  <Help bind:this={help} color={game.target} />
 
   {#if drag}
     <div
@@ -286,6 +359,14 @@
 <style>
   .app {
     --gap: clamp(10px, 2.5vmin, 20px);
+    --line-gap: clamp(8px, 2.2vmin, 18px);
+    --pad-x: 10px;
+    --pad-top: 18px;
+    --pad-bottom: 64px;
+    /* Portrait: size cards so two and a bit fit across the line. */
+    --card-w: calc((100cqi - 2 * var(--gap) - 2 * var(--pad-x) - 2 * var(--line-gap)) / 2.4);
+    --card-h: calc(var(--card-w) * 1.6);
+    container-type: inline-size;
     height: 100%;
     display: grid;
     grid-template:
@@ -320,15 +401,35 @@
     text-transform: uppercase;
   }
 
-  header a {
+  h1 {
+    margin-right: auto;
+  }
+
+  .icon {
     color: var(--muted);
     display: grid;
-    padding: 4px;
+    padding: 6px;
+    min-height: 0;
+    border: none;
+    background: none;
     transition: color 150ms;
   }
 
-  header a:hover {
+  .icon:hover {
     color: var(--brand);
+  }
+
+  .icon svg {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.9;
+    stroke-linecap: round;
+  }
+
+  .icon .dot,
+  a.icon svg {
+    fill: currentColor;
+    stroke: none;
   }
 
   .board {
@@ -343,10 +444,10 @@
   .line {
     flex: 1 1 auto;
     min-height: 0;
-    max-height: min(76vw + 40px, 520px);
+    max-height: calc(var(--card-h) + var(--pad-top) + var(--pad-bottom));
     display: flex;
-    gap: clamp(8px, 2.2vmin, 18px);
-    padding: 18px 14px 22px;
+    gap: var(--line-gap);
+    padding: var(--pad-top) var(--pad-x) var(--pad-bottom);
     overflow-x: auto;
     overflow-y: hidden;
     overscroll-behavior-x: contain;
@@ -362,10 +463,69 @@
   }
 
   .slot {
+    position: relative;
     flex: none;
     height: 100%;
     aspect-ratio: 5 / 8;
     border-radius: 7%;
+  }
+
+  .slot:has(:global(.knocked)) {
+    z-index: 1;
+  }
+
+  /* Between two cards that are in the wrong order. */
+  .clash {
+    position: absolute;
+    z-index: 2;
+    top: 0;
+    left: calc(100% + var(--line-gap) / 2);
+    width: clamp(28px, 4.5vmin, 42px);
+    height: clamp(28px, 4.5vmin, 42px);
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    background: var(--bad);
+    box-shadow:
+      0 0 0 3px var(--bg),
+      0 4px 10px #0008;
+    transform: translate(-50%, -50%);
+    animation: pop 420ms cubic-bezier(0.3, 1.6, 0.5, 1) both;
+  }
+
+  .clash svg {
+    width: 60%;
+    height: 60%;
+    fill: none;
+    stroke: #fff;
+    stroke-width: 3.2;
+    stroke-linecap: round;
+  }
+
+  @keyframes pop {
+    from {
+      transform: translate(-50%, -50%) scale(0);
+    }
+  }
+
+  /* Below the card, clear of where it is grabbed. */
+  .place {
+    position: absolute;
+    top: calc(100% + 14px);
+    left: 50%;
+    transform: translateX(-50%);
+    width: min(100%, 140px);
+    min-height: 40px;
+    padding: 0 12px;
+    border-radius: 12px;
+    background: var(--accent);
+    color: #1d1400;
+    font-size: 1rem;
+    box-shadow: 0 4px 14px #ff9f1c40;
+  }
+
+  .slot .place:active {
+    transform: translateX(-50%) scale(0.95);
   }
 
   .slot.is-pending {
@@ -386,7 +546,7 @@
     grid-area: hand;
     display: flex;
     gap: var(--gap);
-    height: clamp(130px, 29dvh, 300px);
+    height: clamp(130px, min(29dvh, var(--card-h)), 300px);
   }
 
   .deck {
@@ -405,6 +565,27 @@
     transition:
       opacity 300ms,
       transform 300ms;
+  }
+
+  .toggle {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    padding: 4px;
+    border-radius: 14px;
+    background: #ffffff0d;
+  }
+
+  .toggle button {
+    min-height: 40px;
+    border-radius: 10px;
+    background: transparent;
+    color: var(--muted);
+    font-size: 0.95rem;
+  }
+
+  .toggle button[aria-pressed="true"] {
+    background: #ffffff1f;
+    color: var(--text);
   }
 
   .controls {
@@ -506,7 +687,7 @@
     }
 
     .line {
-      max-height: min(100%, 420px);
+      max-height: min(100%, 420px + var(--pad-bottom));
     }
   }
 </style>
