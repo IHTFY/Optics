@@ -1,7 +1,9 @@
 import { COLORS, createCard } from "./card.js";
-import { checkLine } from "./order.js";
+import { checkLine, isDistinct } from "./order.js";
 
 const PREFETCH = 3;
+// Safety net so an unlucky streak of look-alike cards can never hang the game.
+const MAX_REDRAWS = 50;
 
 export class Game {
   target = $state(COLORS[0]);
@@ -38,9 +40,16 @@ export class Game {
   /** Ids of the cards in an out-of-order pair, once revealed. */
   badIds = $derived(new Set(this.result ? [...this.result.bad].map((i) => this.line[i].id) : []));
 
-  #draw() {
-    while (this.#queue.length < PREFETCH + 1) this.#queue.push(createCard());
-    return this.#queue.shift();
+  /** The next card, skipping any whose target amount is too close to one in `taken`. */
+  async #draw(taken) {
+    const target = this.target;
+    const amounts = taken.map((card) => card.counts[target]);
+    for (let redraws = 0; ; redraws++) {
+      while (this.#queue.length < PREFETCH + 1) this.#queue.push(createCard());
+      const card = await this.#queue.shift();
+      if (redraws >= MAX_REDRAWS || isDistinct(card.counts[target], amounts)) return card;
+      release(card);
+    }
   }
 
   async newRound() {
@@ -54,8 +63,9 @@ export class Game {
     this.line = [];
     this.pending = null;
 
-    const [first, next] = await Promise.all([this.#draw(), this.#draw()]);
     this.target = others[Math.floor(Math.random() * others.length)];
+    const first = await this.#draw([]);
+    const next = await this.#draw([first]);
     this.line = [first];
     this.pending = next;
     this.phase = "play";
@@ -85,7 +95,7 @@ export class Game {
     this.line = line;
     this.pending = null;
     this.slot = null;
-    const next = await this.#draw();
+    const next = await this.#draw(line);
     if (this.phase === "play") this.pending = next;
   }
 

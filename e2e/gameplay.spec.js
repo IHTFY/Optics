@@ -281,3 +281,17 @@ test("layout fits the viewport in portrait and landscape", async ({ page }) => {
     expect(line.width, JSON.stringify(size)).toBeGreaterThan(card.width * 2 + 20);
   }
 });
+
+test("no two cards in a line are within 0.1% of each other", async ({ page }) => {
+  await start(page);
+  for (let i = 0; i < 8; i++) {
+    await tapLine(page, 0.95);
+    await placeBtn(page).click();
+    await expect(lineCards(page)).toHaveCount(i + 2);
+  }
+  const amounts = await page.evaluate(() => {
+    const g = window.__game;
+    return g.line.map((c) => c.counts[g.target]).sort((a, b) => a - b);
+  });
+  for (let i = 0; i < amounts.length - 1; i++) expect(amounts[i + 1] - amounts[i]).toBeGreaterThanOrEqual(256);
+});

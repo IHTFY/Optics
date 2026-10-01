@@ -5,6 +5,7 @@
   import Help from "./components/Help.svelte";
   import Wedge from "./components/Wedge.svelte";
   import { Game } from "./lib/game.svelte.js";
+  import { outOfOrder } from "./lib/order.js";
   import { backOut } from "svelte/easing";
   import { ms, receive, send } from "./lib/motion.js";
 
@@ -46,7 +47,7 @@
 
   /** For each played position, whether it is out of order with its right neighbour. */
   const clashes = $derived(
-    game.result && !game.sorted ? amounts.map((a, i) => i < amounts.length - 1 && a > amounts[i + 1]) : []
+    game.result && !game.sorted ? amounts.map((a, i) => i < amounts.length - 1 && outOfOrder(a, amounts[i + 1])) : []
   );
 
   /** How a misplaced card is knocked: away from each card it clashes with, or null. */
