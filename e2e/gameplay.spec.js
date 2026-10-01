@@ -295,3 +295,41 @@ test("no two cards in a line are within 0.1% of each other", async ({ page }) =>
   });
   for (let i = 0; i < amounts.length - 1; i++) expect(amounts[i + 1] - amounts[i]).toBeGreaterThanOrEqual(256);
 });
+
+test("the graph settles back to the arrow smoothly on the next round", async ({ page }) => {
+  await start(page);
+  // Put the most of the target color first, so the graph peaks at the left.
+  for (let i = 0; i < 3; i++) {
+    await page.evaluate(() => {
+      const g = window.__game;
+      const amount = (c) => c.counts[g.target];
+      g.moveTo(amount(g.pending) > amount(g.line[0]) ? 0 : g.line.length);
+    });
+    await placeBtn(page).click();
+    await expect(lineCards(page)).toHaveCount(i + 2);
+  }
+  await challengeBtn(page).click();
+  await readGraph(page);
+
+  // Height of the highest point of the arrow on every frame after Next round.
+  await page.evaluate(() => {
+    window.__peaks = [];
+    const tick = () => {
+      const ys = [...document.querySelectorAll(".wedge svg polygon")].flatMap((p) =>
+        p.getAttribute("points").split(" ").map((pt) => parseFloat(pt.split(",")[1]))
+      );
+      window.__peaks.push(-Math.min(...ys));
+      window.__raf = requestAnimationFrame(tick);
+    };
+    tick();
+  });
+  await page.getByRole("button", { name: "Next round" }).click();
+  await expect(page.locator(".wedge")).toHaveAttribute("data-state", "flat");
+  await page.waitForTimeout(500);
+  const peaks = await page.evaluate(() => {
+    cancelAnimationFrame(window.__raf);
+    return window.__peaks;
+  });
+  // It only ever comes down: no flash to flat, no jump back up.
+  for (let i = 1; i < peaks.length; i++) expect(peaks[i]).toBeLessThanOrEqual(peaks[i - 1] + 0.5);
+});

@@ -18,6 +18,11 @@
   let flatHead = $state(24);
   /** Card centers in this element's coordinates. */
   let xs = $state.raw([]);
+  /**
+   * Where the points were when the graph started to flatten. The cards are
+   * replaced while it comes down, so it keeps to the old spots until it is flat.
+   */
+  let frozen = $state.raw(null);
   /** Empty space above this element that the graph may rise into. */
   let room = $state(0);
 
@@ -33,10 +38,15 @@
     untrack(() => {
       from = current(progress.current);
       to = next;
+      frozen = values ? null : (frozen ?? xs);
       progress.set(0, { duration: 0 });
       // Rising waits for the amounts to show; sorting keeps time with the cards.
       const rising = next.graph !== from.graph;
-      progress.set(1, { delay: ms(rising ? wait : 0), duration: ms(rising ? 900 : 650), easing: cubicInOut });
+      progress
+        .set(1, { delay: ms(rising ? wait : 0), duration: ms(rising ? 900 : 650), easing: cubicInOut })
+        .then(() => {
+          if (to === next && !values) frozen = null;
+        });
     });
   });
 
@@ -107,7 +117,7 @@
 
     // The graph through the card centers, flat beyond the first and last card,
     // clipped to the visible arrow.
-    const points = xs.map((x, i) => [x, y(heights[i] ?? 0)]);
+    const points = (frozen ?? xs).map((x, i) => [x, y(heights[i] ?? 0)]);
     const at = (x) => {
       if (!points.length || x <= points[0][0]) return points[0]?.[1] ?? base;
       for (let i = 1; i < points.length; i++) {
