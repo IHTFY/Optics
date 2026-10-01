@@ -17,10 +17,10 @@ sorted/played, `Esc` takes it back.
 ## Development
 
 ```sh
-npm install
-npm run dev        # local dev server
-npm test           # unit tests
-npm run test:e2e   # browser tests (Playwright)
+pnpm install
+pnpm dev            # local dev server
+pnpm test           # unit tests
+pnpm test:e2e       # browser tests (Playwright)
 ```
 
 Every push to `master` that passes CI is deployed to GitHub Pages automatically.
