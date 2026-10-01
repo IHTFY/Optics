@@ -317,12 +317,14 @@
     <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
     <div class="deck" bind:this={deckEl} onclick={onDeckClick}>
       {#if game.pending && game.slot === null}
+        <!-- Fixed now: the exit runs after the game has cleared its pending card. -->
+        {@const key = game.pending.id}
         <div
           class="slot is-pending"
           class:lifted={drag}
           class:resting={game.phase !== "play"}
-          in:receive={{ key: game.pending.id }}
-          out:send={{ key: game.pending.id }}
+          in:receive={{ key }}
+          out:send={{ key }}
           onpointerdown={onPointerDown}
         >
           <Card card={game.pending} target={game.target} />
