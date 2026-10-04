@@ -3,10 +3,21 @@
   --panel: #2a2b31;
   --text: #f4f2ee;
   --muted: #9a9ba3;
-  --brand: #ff3e00;
+  --red: #e5383b;
+  --red-bright: #ef4548;
+  --red-deep: #9d2028;
+  --red-glow: #e5383b40;
+  --brand: var(--red-bright);
   --accent: #ff9f1c;
   --good: #2fbf71;
-  --bad: #ff4d4f;
+  --bad: var(--red);
+  --surface: #ffffff08;
+  --border: #ffffff22;
+  --card-paper: #f3efe6;
+  --stats-bg: #202125ed;
+  --on-accent: #1d1400;
+  --on-red: #fff;
+  --accent-glow: #ff9f1c33;
   color-scheme: dark;
 }
 

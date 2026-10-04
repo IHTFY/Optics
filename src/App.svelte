@@ -4,10 +4,11 @@
   import Card from "./components/Card.svelte";
   import Help from "./components/Help.svelte";
   import Wedge from "./components/Wedge.svelte";
+  import OrderToggle from "./components/OrderToggle.svelte";
   import { Game } from "./lib/game.svelte.js";
   import { outOfOrder } from "./lib/order.js";
   import { backOut } from "svelte/easing";
-  import { ms, receive, send } from "./lib/motion.js";
+  import { ms, receive, send, collectCards } from "./lib/motion.js";
 
   const game = new Game();
 
@@ -21,6 +22,21 @@
   let suppressClick = false;
 
   let help = $state();
+  let collecting = $state(false);
+
+  async function nextRound() {
+    if (collecting || game.phase !== "reveal") return;
+    collecting = true;
+    try {
+      await collectCards(lineEl, deckEl);
+      const round = game.newRound();
+      await tick();
+      collecting = false;
+      await round;
+    } finally {
+      collecting = false;
+    }
+  }
 
   // Appears once the card has landed in the line.
   const placeIn = (node, params, { direction }) => ({
@@ -38,6 +54,7 @@
   const knockDelay = (i) => (toggled ? 120 : i * 90 + 750);
 
   function toggleSorted() {
+    if (collecting) return;
     toggled = true;
     game.toggleSorted();
   }
@@ -228,7 +245,7 @@
       else if (key === "c") game.challenge();
       else return;
     } else if (game.phase === "reveal") {
-      if (key === "enter" && !e.target.closest?.("button")) game.newRound();
+      if (key === "enter" && !e.target.closest?.("button")) nextRound();
       else if (key === "s") toggleSorted();
       else return;
     } else return;
@@ -240,7 +257,7 @@
 
 <svelte:window onkeydown={onKeydown} />
 
-<div class="app" class:dragging={drag}>
+<div class="app" class:dragging={drag} class:collecting>
   <header>
     <h1>Optics</h1>
     <button class="icon" aria-label="How to play" onclick={() => help.open()}>
@@ -276,7 +293,7 @@
           class:lifted={item.pending && drag}
           animate:flip={{ duration: ms(game.phase === "reveal" ? 650 : 280) }}
           in:receive={{ key: item.card.id }}
-          out:send={{ key: item.card.id, delay: i * 40 }}
+          out:send={{ key: item.card.id, discard: collecting }}
           onpointerdown={item.pending ? onPointerDown : undefined}
         >
           <Card
@@ -324,7 +341,7 @@
           class:lifted={drag}
           class:resting={game.phase !== "play"}
           in:receive={{ key }}
-          out:send={{ key }}
+          out:send={{ key, discard: collecting }}
           onpointerdown={onPointerDown}
         >
           <Card card={game.pending} target={game.target} />
@@ -335,14 +352,11 @@
     <div class="controls">
       {#if game.phase === "reveal"}
         {#if game.result && !game.result.correct}
-          <div class="toggle" role="group" aria-label="Line order">
-            <button aria-pressed={!game.sorted} onclick={() => game.sorted && toggleSorted()}>Played</button>
-            <button aria-pressed={game.sorted} onclick={() => !game.sorted && toggleSorted()}>Sorted</button>
-          </div>
+          <OrderToggle sorted={game.sorted} disabled={collecting} onchange={(sorted) => sorted !== game.sorted && toggleSorted()} />
         {/if}
-        <button class="primary" onclick={() => game.newRound()}>Next round</button>
+        <button class="primary" disabled={collecting} onclick={nextRound}>Next round</button>
       {:else}
-        <button class="secondary" disabled={!game.canChallenge} onclick={() => game.challenge()}>
+        <button class="challenge" disabled={!game.canChallenge} onclick={() => game.challenge()}>
           Challenge
         </button>
       {/if}
@@ -463,9 +477,9 @@
     overflow-y: hidden;
     overscroll-behavior-x: contain;
     scrollbar-width: thin;
-    scrollbar-color: #555 transparent;
+    scrollbar-color: var(--muted) transparent;
     border-radius: 18px;
-    background: #ffffff08;
+    background: var(--surface);
     touch-action: pan-x;
   }
 
@@ -530,9 +544,9 @@
     padding: 0 12px;
     border-radius: 12px;
     background: var(--accent);
-    color: #1d1400;
+    color: var(--on-accent);
     font-size: 1rem;
-    box-shadow: 0 4px 14px #ff9f1c40;
+    box-shadow: 0 4px 14px var(--accent-glow);
   }
 
   .slot .place:active {
@@ -566,7 +580,7 @@
     aspect-ratio: 5 / 8;
     border-radius: 7%;
     padding: 0;
-    outline: 2px dashed #ffffff22;
+    outline: 2px dashed var(--border);
     outline-offset: 4px;
   }
 
@@ -576,27 +590,6 @@
     transition:
       opacity 300ms,
       transform 300ms;
-  }
-
-  .toggle {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    padding: 4px;
-    border-radius: 14px;
-    background: #ffffff0d;
-  }
-
-  .toggle button {
-    min-height: 40px;
-    border-radius: 10px;
-    background: transparent;
-    color: var(--muted);
-    font-size: 0.95rem;
-  }
-
-  .toggle button[aria-pressed="true"] {
-    background: #ffffff1f;
-    color: var(--text);
   }
 
   .controls {
@@ -630,8 +623,8 @@
 
   button:disabled {
     background: transparent;
-    border-color: #ffffff1f;
-    color: #ffffff4d;
+    border-color: var(--border);
+    color: var(--muted);
     box-shadow: none;
     cursor: default;
   }
@@ -643,24 +636,42 @@
 
   .primary {
     background: var(--accent);
-    color: #1d1400;
-    box-shadow: 0 6px 18px #ff9f1c33;
+    color: var(--on-accent);
+    box-shadow: 0 6px 18px var(--accent-glow);
   }
 
-  .secondary {
-    background: transparent;
-    color: var(--text);
-    border-color: #ffffff40;
+  .challenge {
+    min-height: 64px;
+    background: linear-gradient(var(--red-bright), var(--red));
+    color: var(--on-red);
+    border-color: var(--red-bright);
+    box-shadow: 0 5px 0 var(--red-deep), 0 9px 22px var(--red-glow);
   }
 
-  .secondary:not(:disabled):hover {
-    border-color: var(--text);
+  .challenge:not(:disabled):hover {
+    box-shadow: 0 5px 0 var(--red-deep), 0 10px 28px var(--red-glow);
+    filter: brightness(1.08);
   }
+
+  .challenge:active:not(:disabled) {
+    transform: translateY(4px);
+    box-shadow: 0 1px 0 var(--red-deep), 0 4px 10px var(--red-glow);
+  }
+
+  .collecting .line,
+  .collecting .deck { pointer-events: none; }
+
+  .collecting .slot { visibility: hidden; }
 
   .drag-ghost {
     position: fixed;
     z-index: 10;
     pointer-events: none;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    button { transition: none; }
+    .clash { animation: none; }
   }
 
   /* Landscape: hand on the left, line fills the rest. */
