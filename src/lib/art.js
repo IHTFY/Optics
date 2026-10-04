@@ -579,7 +579,7 @@ function triangles(ctx, rng, w, h, pal) {
   const th = (s * Math.sqrt(3)) / 2;
   const vertical = rng.chance(0.5);
   const [W, H] = vertical ? [h, w] : [w, h];
-  const mode = rng.pick(["weighted", "weighted", "rows", "stars"]);
+  const mode = rng.pick(["weighted", "weighted", "rows"]);
   const cols = pal.seq(rng.pick([2, 3, 3, 3, 4, 4, 4, 4]), 0.3);
   ctx.save();
   if (vertical) {
@@ -606,8 +606,7 @@ function triangles(ctx, rng, w, h, pal) {
       ctx.closePath();
       let c;
       if (mode === "weighted") c = pal.pick();
-      else if (mode === "rows") c = cols[(r + (up ? 0 : 1)) % cols.length].c;
-      else c = up ? cols[0].c : cols[1 + ((((i + r) >> 1) % (cols.length - 1)) + cols.length) % (cols.length - 1)].c;
+      else c = cols[(r + (up ? 0 : 1)) % cols.length].c;
       solid(ctx, c);
     }
   }
@@ -842,7 +841,7 @@ function hero(ctx, rng, w, h, pal) {
     }
     ctx.beginPath();
     if (kind === "blob") blobPath(ctx, rng, x, y, r);
-    else if (kind === "star") SHAPES.star(ctx, x, y, r * 1.2, -Math.PI / 2, rng.pick([5, 5, 6, 8]), 0.5);
+    else if (kind === "star") SHAPES.star(ctx, x, y, r * 1.2, -Math.PI / 2, rng.pick([5, 5, 8]), 0.5);
     else SHAPES[kind](ctx, x, y, r, rot);
     if (outline) {
       ctx.strokeStyle = inkCss(outlineInk);

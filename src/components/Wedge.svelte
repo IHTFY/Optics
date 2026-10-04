@@ -139,10 +139,17 @@
       width: thickness(path[i][0]),
     }));
     const tipY = at(end);
+    // Follow the segment entering the head, including when it is clipped by scrolling.
+    const previous = path.at(-2);
+    const angle = Math.atan2(tipY - previous[1], end - previous[0]);
+    const dx = Math.cos(angle);
+    const dy = Math.sin(angle);
+    const tipX = end + head * dx;
+    const tipHeight = tipY + head * dy;
     return {
       band: [...top, ...bottom].join(" "),
       segments,
-      tip: `${end},${tipY - head / 2} ${width},${tipY} ${end},${tipY + head / 2}`,
+      tip: `${end + dy * head / 2},${tipY - dx * head / 2} ${tipX},${tipHeight} ${end - dy * head / 2},${tipY + dx * head / 2}`,
     };
   });
 

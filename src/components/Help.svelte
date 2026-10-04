@@ -15,7 +15,7 @@
 
 {#snippet card(x, y, amount, rotate = 0)}
   <g transform="translate({x} {y}) rotate({rotate} 20 32)">
-    <rect width="40" height="64" rx="5" fill="#f3efe6" />
+    <rect width="40" height="64" rx="5" fill="var(--card-paper)" />
     <rect x="4" y="4" width="32" height="56" rx="2" fill={others[0][1]} />
     <rect x="4" y="4" width="32" height="18" rx="2" fill={others[1][1]} />
     <rect x="4" y={60 - 56 * amount} width="32" height={56 * amount} rx="2" fill={fill} />
@@ -24,7 +24,7 @@
 
 {#snippet cross(x, y)}
   <g transform="translate({x} {y})">
-    <circle r="10" fill="var(--bad)" stroke="#2a2b30" stroke-width="3" />
+    <circle r="10" fill="var(--bad)" stroke="var(--panel)" stroke-width="3" />
     <path d="M-4 -4l8 8M4 -4l-8 8" stroke="#fff" stroke-width="2.4" stroke-linecap="round" />
   </g>
 {/snippet}
@@ -85,7 +85,7 @@
     padding: 20px 20px 18px;
     border: 1px solid #ffffff14;
     border-radius: 22px;
-    background: #2a2b30;
+    background: var(--panel);
     color: var(--text);
     box-shadow: 0 24px 60px #000a;
     overflow-y: auto;
@@ -161,7 +161,7 @@
     display: block;
     padding: 6px;
     border-radius: 14px;
-    background: #ffffff08;
+    background: var(--surface);
   }
 
   p {
@@ -179,7 +179,7 @@
     margin-right: 0.45em;
     border-radius: 50%;
     background: var(--accent);
-    color: #1d1400;
+    color: var(--on-accent);
     font-size: 0.8em;
     font-weight: 700;
     vertical-align: 0.1em;

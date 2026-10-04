@@ -53,9 +53,9 @@
     height: 100%;
     border-radius: 7cqi;
     overflow: hidden;
-    background: #f3efe6;
+    background: var(--card-paper);
     box-shadow:
-      0 0 0 3cqi #f3efe6,
+      0 0 0 3cqi var(--card-paper),
       0 4px 14px #0006;
     transition:
       transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1.3),
@@ -82,14 +82,14 @@
     outline-color: var(--accent);
     transform: translateY(-3%);
     box-shadow:
-      0 0 0 3cqi #f3efe6,
+      0 0 0 3cqi var(--card-paper),
       0 10px 24px #000a;
   }
 
   .ghost {
     transform: rotate(var(--tilt, 0deg)) scale(1.06);
     box-shadow:
-      0 0 0 3cqi #f3efe6,
+      0 0 0 3cqi var(--card-paper),
       0 18px 36px #000c;
     outline-color: var(--accent);
     transition: none;
@@ -124,9 +124,9 @@
     position: absolute;
     inset: auto 0 0 0;
     padding: 5cqi 4cqi 6cqi;
-    background: #16171bdd;
+    background: var(--stats-bg);
     backdrop-filter: blur(4px);
-    color: #fff;
+    color: var(--text);
     font-variant-numeric: tabular-nums;
     text-align: center;
   }
