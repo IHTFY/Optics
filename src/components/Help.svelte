@@ -76,6 +76,10 @@
     <span><kbd>S</kbd> Sorted</span>
     <span><kbd>Esc</kbd> Take back</span>
   </div>
+
+  <div class="support">
+    <a href="https://ihtfy.com/support/" target="_blank" rel="noopener">Support ♥</a>
+  </div>
 </dialog>
 
 <style>
@@ -214,6 +218,21 @@
     .keys {
       display: flex;
     }
+  }
+
+  .support {
+    margin: 14px 0 0;
+    text-align: center;
+    font-size: 0.8rem;
+  }
+
+  .support a {
+    color: var(--muted);
+  }
+
+  .support a:hover,
+  .support a:focus-visible {
+    color: var(--text);
   }
 
   kbd {
