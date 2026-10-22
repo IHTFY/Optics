@@ -79,6 +79,7 @@
 
   <div class="support">
     <a href="https://ihtfy.com/support/" target="_blank" rel="noopener">Support ♥</a>
+    <a href="https://ihtfy.com/privacy" target="_blank" rel="noopener">Privacy</a>
   </div>
 </dialog>
 
@@ -228,6 +229,10 @@
 
   .support a {
     color: var(--muted);
+  }
+
+  .support a + a {
+    margin-left: 16px;
   }
 
   .support a:hover,

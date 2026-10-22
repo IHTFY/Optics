@@ -5,6 +5,7 @@
   import Help from "./components/Help.svelte";
   import Wedge from "./components/Wedge.svelte";
   import OrderToggle from "./components/OrderToggle.svelte";
+  import { AD_SLOT, showAd } from "./lib/ads.js";
   import { Game } from "./lib/game.svelte.js";
   import { outOfOrder } from "./lib/order.js";
   import { backOut } from "svelte/easing";
@@ -22,6 +23,12 @@
   let suppressClick = false;
 
   let help = $state();
+  let adBox = $state();
+
+  // One ad per challenge: the box is new each reveal, and the key names the line.
+  $effect(() => {
+    if (adBox) showAd(adBox, `${game.target}:${game.line.map((card) => card.id).join(",")}`);
+  });
   let collecting = $state(false);
 
   async function nextRound() {
@@ -257,6 +264,7 @@
 
 <svelte:window onkeydown={onKeydown} />
 
+<div class="page">
 <div class="app" class:dragging={drag} class:collecting>
   <header>
     <h1>Optics</h1>
@@ -380,7 +388,46 @@
   {/if}
 </div>
 
+  <!-- Below the fold, well clear of the buttons above; the box keeps its size whether or not an ad fills it. -->
+  {#if game.phase === "reveal"}
+    <aside class="ad">
+      <p>Advertisements</p>
+      <div class="ad-box" bind:this={adBox} data-ad-slot={AD_SLOT}></div>
+      <a href="https://ihtfy.com/privacy">Privacy</a>
+    </aside>
+  {/if}
+</div>
+
 <style>
+  /* Sized from the viewport, not the parents: AdSense sets `height: auto` on an ad's ancestors. */
+  .page {
+    height: 100dvh;
+    overflow-y: auto;
+  }
+
+  .ad {
+    display: grid;
+    justify-items: center;
+    gap: 6px;
+    padding: 150px 16px 24px;
+    color: var(--muted);
+    font-size: 0.75rem;
+  }
+
+  .ad p {
+    margin: 0;
+  }
+
+  .ad a {
+    color: inherit;
+  }
+
+  .ad-box {
+    width: 300px;
+    height: 250px;
+    min-height: 250px;
+  }
+
   .app {
     --gap: clamp(10px, 2.5vmin, 20px);
     --line-gap: clamp(8px, 2.2vmin, 18px);
