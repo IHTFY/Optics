@@ -242,7 +242,7 @@
   }
 
   function onKeydown(e) {
-    if (e.target.closest?.("input, textarea, dialog") || e.metaKey || e.ctrlKey || e.altKey) return;
+    if (e.target.closest?.("input, textarea, select, dialog, a[href]") || e.metaKey || e.ctrlKey || e.altKey) return;
     const key = e.key.toLowerCase();
     if (game.phase === "play") {
       if (key === "arrowleft") game.step(-1);

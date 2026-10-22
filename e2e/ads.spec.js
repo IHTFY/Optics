@@ -36,3 +36,19 @@ test("the ad slot appears only after a challenge, in a reserved box, and asks fo
   });
   expect(gap).toBeGreaterThanOrEqual(150);
 });
+
+test("Enter on the Privacy link follows the link instead of starting the next round", async ({ page }) => {
+  await page.route(LOADER, (route) => route.fulfill({ contentType: "text/javascript", body: "window.ihtfyAds = { show() {} };" }));
+  await page.route("https://ihtfy.com/privacy", (route) => route.fulfill({ contentType: "text/html", body: "privacy" }));
+  await page.goto("/");
+  await expect(page.locator(".deck .slot")).toHaveCount(1);
+  await page.evaluate(() => {
+    const game = window.__game;
+    const card = game.line[0];
+    game.line = [3, 1, 2].map((amount, i) => ({ ...card, id: `ad-${i}`, counts: { ...card.counts, [game.target]: amount * 10000 } }));
+    game.challenge();
+  });
+  await page.locator(".ad a").focus();
+  await page.keyboard.press("Enter");
+  await expect(page).toHaveURL("https://ihtfy.com/privacy");
+});
