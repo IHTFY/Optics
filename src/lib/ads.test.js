@@ -2,6 +2,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 let added;
 let shown;
+let storage;
+let cookie;
 
 async function loadAds() {
   vi.resetModules();
@@ -14,9 +16,15 @@ const box = () => ({ isConnected: true });
 
 beforeEach(() => {
   added = [];
+  storage = {};
+  cookie = "";
   shown = [];
   // Record script tags instead of fetching them.
+  vi.stubGlobal("localStorage", { getItem: (key) => storage[key] ?? null });
   vi.stubGlobal("document", {
+    get cookie() {
+      return cookie;
+    },
     createElement: () => {
       const listeners = {};
       return {
@@ -76,5 +84,41 @@ describe("showAd", () => {
     expect(shown).toEqual([]);
     showAd(box(), "b");
     expect(added).toHaveLength(2);
+  });
+});
+
+describe("loadForBuyer", () => {
+  it("loads nothing for a visitor without an ad-free token", async () => {
+    const { loadForBuyer } = await loadAds();
+    loadForBuyer();
+    expect(added).toHaveLength(0);
+  });
+
+  it("loads the loader at startup when localStorage holds a token, and showAd reuses it", async () => {
+    storage["ihtfy-ad-free"] = "x.y.z";
+    const { loadForBuyer, showAd } = await loadAds();
+    loadForBuyer();
+    expect(added).toHaveLength(1);
+    expect(added[0].src).toBe("https://ihtfy.com/ads/v1.js");
+    showAd(box(), "a");
+    expect(added).toHaveLength(1);
+  });
+
+  it("loads the loader at startup when only the cookie holds a token", async () => {
+    cookie = "a=1; ihtfy-ad-free=x.y.z";
+    const { loadForBuyer } = await loadAds();
+    loadForBuyer();
+    expect(added).toHaveLength(1);
+  });
+
+  it("still starts when the cookie cannot be read", async () => {
+    Object.defineProperty(document, "cookie", {
+      get() {
+        throw new Error("SecurityError");
+      },
+    });
+    const { loadForBuyer } = await loadAds();
+    expect(() => loadForBuyer()).not.toThrow();
+    expect(added).toHaveLength(0);
   });
 });
