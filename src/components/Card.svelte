@@ -65,7 +65,8 @@
       rotate 480ms cubic-bezier(0.3, 1.5, 0.5, 1),
       opacity 300ms ease;
     outline: 3px solid transparent;
-    outline-offset: 3px;
+    /* Clear of the paper rim, so a verdict color never touches the art. */
+    outline-offset: calc(3cqi + 2px);
     user-select: none;
     -webkit-user-select: none;
     -webkit-touch-callout: none;
@@ -103,9 +104,6 @@
   .bad {
     outline-color: var(--bad);
     outline-width: 4px;
-    box-shadow:
-      0 0 0 3cqi var(--bad),
-      0 4px 14px #0006;
     animation: shake 480ms calc(var(--order) * 90ms + 300ms) both;
   }
 
@@ -123,6 +121,8 @@
   .stats {
     position: absolute;
     inset: auto 0 0 0;
+    /* The face's rounded clip doesn't reliably clip backdrop-filter. */
+    border-radius: 0 0 7cqi 7cqi;
     padding: 5cqi 4cqi 6cqi;
     background: var(--stats-bg);
     backdrop-filter: blur(4px);
