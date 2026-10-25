@@ -79,7 +79,8 @@
     const slots = line.querySelectorAll(":scope > .slot");
     const offset = line.getBoundingClientRect().left + line.clientLeft - line.scrollLeft - box.getBoundingClientRect().left;
     xs = Array.from(slots, (s) => offset + s.offsetLeft + s.offsetWidth / 2);
-    room = box.getBoundingClientRect().top - box.parentElement.getBoundingClientRect().top;
+    // The page regrows when the results ad leaves; the graph coming down keeps the room it rose into.
+    if (!frozen) room = box.getBoundingClientRect().top - box.parentElement.getBoundingClientRect().top;
   }
 
   $effect(() => {

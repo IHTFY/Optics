@@ -1,11 +1,12 @@
 <script>
   import { onMount, tick } from "svelte";
+  import { MediaQuery } from "svelte/reactivity";
   import { flip } from "svelte/animate";
   import Card from "./components/Card.svelte";
   import Help from "./components/Help.svelte";
   import Wedge from "./components/Wedge.svelte";
   import OrderToggle from "./components/OrderToggle.svelte";
-  import { AD_SLOT, showAd } from "./lib/ads.js";
+  import { AD_SLOT, SIDE_LAYOUT, adSizeFor, showAd, showsAd } from "./lib/ads.js";
   import { Game } from "./lib/game.svelte.js";
   import { outOfOrder } from "./lib/order.js";
   import { backOut } from "svelte/easing";
@@ -24,10 +25,17 @@
 
   let help = $state();
   let adBox = $state();
+  let adShown = $state(false);
+  let viewportHeight = $state(0);
+  const side = new MediaQuery(SIDE_LAYOUT);
+  const adSize = $derived(adSizeFor(viewportHeight, side.current));
+  $effect.pre(() => {
+    adShown = showsAd(game.phase, adShown);
+  });
 
   // One ad per challenge: the box is new each reveal, and the key names the line.
   $effect(() => {
-    if (adBox) showAd(adBox, `${game.target}:${game.line.map((card) => card.id).join(",")}`);
+    if (adBox && game.phase === "reveal") showAd(adBox, `${game.target}:${game.line.map((card) => card.id).join(",")}`);
   });
   let collecting = $state(false);
 
@@ -262,10 +270,10 @@
   const verdict = (card) => (game.result ? (game.badIds.has(card.id) ? "bad" : "good") : null);
 </script>
 
-<svelte:window onkeydown={onKeydown} />
+<svelte:window onkeydown={onKeydown} bind:innerHeight={viewportHeight} />
 
 <div class="page">
-<div class="app" class:dragging={drag} class:collecting>
+<div class="app" class:dragging={drag} class:collecting class:reveal={adShown}>
   <header>
     <h1>Optics</h1>
     <button class="icon" aria-label="How to play" onclick={() => help.open()}>
@@ -388,44 +396,61 @@
   {/if}
 </div>
 
-  <!-- Below the fold, well clear of the buttons above; the box keeps its size whether or not an ad fills it. -->
-  {#if game.phase === "reveal"}
-    <aside class="ad">
-      <p>Advertisements</p>
-      <div class="ad-box" bind:this={adBox} data-ad-slot={AD_SLOT}></div>
-      <a href="https://ihtfy.com/privacy">Privacy</a>
-    </aside>
+  <!-- Under the whole game, so the box is in view with the result and never between two controls. The box keeps its size whether or not an ad fills it. -->
+  {#if adShown}
+    <!-- A new box when a turn of the phone changes the size, never a resized one. -->
+    {#key adSize.name}
+      <aside class="ad">
+        <a href="https://ihtfy.com/privacy/">Privacy</a>
+        <p>Advertisements</p>
+        <div
+          class="ad-box"
+          bind:this={adBox}
+          data-ad-slot={AD_SLOT}
+          data-ad-size={adSize.name}
+          style:width="{adSize.width}px"
+          style:height="{adSize.height}px"
+          style:min-height="{adSize.height}px"
+          style:max-height="{adSize.height}px"
+        ></div>
+      </aside>
+    {/key}
   {/if}
 </div>
 
 <style>
-  /* Sized from the viewport, not the parents: AdSense sets `height: auto` on an ad's ancestors. */
+  /* Sized from the viewport, not the parents: AdSense sets `height: auto` on an ad's ancestors, so the floor and ceiling hold the height too. */
   .page {
     height: 100dvh;
+    min-height: 100dvh;
+    max-height: 100dvh;
+    display: flex;
+    flex-direction: column;
     overflow-y: auto;
   }
 
+  /* Privacy, then the label and box, at least 50px apart. Every control is above or to the left of the box. */
   .ad {
+    flex: none;
     display: grid;
     justify-items: center;
-    gap: 6px;
-    padding: 150px 16px 24px;
+    padding: 8px 0 max(12px, env(safe-area-inset-bottom));
     color: var(--muted);
     font-size: 0.75rem;
+    line-height: 16px;
   }
 
   .ad p {
-    margin: 0;
+    margin: 32px 0 4px;
   }
 
   .ad a {
     color: inherit;
   }
 
+  /* No line box around the ad: it adds no strut below the unit. */
   .ad-box {
-    width: 300px;
-    height: 250px;
-    min-height: 250px;
+    line-height: 0;
   }
 
   .app {
@@ -438,7 +463,8 @@
     --card-w: calc((100cqi - 2 * var(--gap) - 2 * var(--pad-x) - 2 * var(--line-gap)) / 2.4);
     --card-h: calc(var(--card-w) * 1.6);
     container-type: inline-size;
-    height: 100%;
+    flex: 1 1 0;
+    min-height: 0;
     display: grid;
     grid-template:
       "header" auto
@@ -448,6 +474,11 @@
     padding: max(var(--gap), env(safe-area-inset-top)) max(var(--gap), env(safe-area-inset-right))
       max(var(--gap), env(safe-area-inset-bottom)) max(var(--gap), env(safe-area-inset-left));
     overflow: hidden;
+  }
+
+  /* No Place button under the cards once they are revealed. */
+  .app.reveal {
+    --pad-bottom: 18px;
   }
 
   .app.dragging {
@@ -719,6 +750,25 @@
   @media (prefers-reduced-motion: reduce) {
     button { transition: none; }
     .clash { animation: none; }
+  }
+
+  /* The ad takes room below, and the revealed hand is only the resting deck and two buttons. */
+  @media not (min-aspect-ratio: 5 / 4) {
+    .app.reveal .hand {
+      height: 132px;
+    }
+  }
+
+  /* A wide, short window: the ad stands to the right of the game, so the game keeps its full height. Keep in step with SIDE_LAYOUT in ads.js. */
+  @media (min-aspect-ratio: 5 / 4) and (min-width: 1000px) and (min-height: 400px) {
+    .page {
+      flex-direction: row;
+    }
+
+    .ad {
+      align-self: center;
+      padding: 0 24px;
+    }
   }
 
   /* Landscape: hand on the left, line fills the rest. */
