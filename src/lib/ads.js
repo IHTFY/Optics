@@ -9,6 +9,38 @@ const LOADER = import.meta.env.VITE_ADS_LOADER || "https://ihtfy.com/ads/v1.js";
 // The shared 300×250 display unit for the games' result screens.
 export const AD_SLOT = "6470163205";
 
+/** Boxes the results screen may use, tallest first, as `data-ad-size` and pixels. */
+export const AD_SIZES = [
+  { name: "300x250", width: 300, height: 250 },
+  { name: "320x100", width: 320, height: 100 },
+  { name: "320x50", width: 320, height: 50 },
+];
+
+/** Space the ad's aside takes besides the box: Privacy link, label, and the 50px clearances. */
+export const AD_CHROME = 88;
+
+/** The least height the board, cards, and Next round button need to stay readable. */
+export const MIN_GAME_HEIGHT = 450;
+
+/**
+ * Whether the results ad is on the page in `phase`, given whether it was just before.
+ * Only the results screen carries one, never the play screen, where a phone is mid-game.
+ * It stays through "loading" so the page doesn't resize while the next round's cards arrive.
+ */
+export const showsAd = (phase, was = false) => phase === "reveal" || (phase === "loading" && was);
+
+/** Windows where the ad stands to the right of the game instead of below it (App.svelte's CSS repeats this query). */
+export const SIDE_LAYOUT = "(min-aspect-ratio: 5/4) and (min-width: 1000px) and (min-height: 400px)";
+
+/**
+ * The tallest box that leaves the game its room in a viewport `viewportHeight` px high.
+ * Beside the game, the full height is the game's, and the biggest box fits the least height there is.
+ */
+export const adSizeFor = (viewportHeight, side = false) =>
+  side
+    ? AD_SIZES[0]
+    : (AD_SIZES.find((size) => viewportHeight - AD_CHROME - size.height >= MIN_GAME_HEIGHT) ?? AD_SIZES.at(-1));
+
 let loader = null;
 
 const load = () =>

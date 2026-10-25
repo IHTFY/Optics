@@ -41,6 +41,66 @@ beforeEach(() => {
 
 afterEach(() => vi.unstubAllGlobals());
 
+describe("showsAd", () => {
+  it("is true on the results screen", async () => {
+    const { showsAd } = await loadAds();
+    expect(showsAd("reveal")).toBe(true);
+    expect(showsAd("reveal", true)).toBe(true);
+  });
+
+  it("is never true on the play screen, even right after results", async () => {
+    const { showsAd } = await loadAds();
+    expect(showsAd("play")).toBe(false);
+    expect(showsAd("play", true)).toBe(false);
+    expect(showsAd(undefined, true)).toBe(false);
+  });
+
+  it("holds through loading only when results were showing, so startup has no ad", async () => {
+    const { showsAd } = await loadAds();
+    expect(showsAd("loading", true)).toBe(true);
+    expect(showsAd("loading", false)).toBe(false);
+  });
+});
+
+describe("adSizeFor", () => {
+  it.each([
+    [800, "300x250"],
+    [915, "300x250"],
+    [750, "320x100"],
+    [640, "320x100"],
+    [480, "320x50"],
+    [300, "320x50"],
+  ])("a %i px tall screen gets a %s box", async (height, name) => {
+    const { adSizeFor } = await loadAds();
+    expect(adSizeFor(height).name).toBe(name);
+  });
+
+  it("gives the 300x250 box beside the game on a wide window, whatever its height", async () => {
+    const { AD_CHROME, AD_SIZES, adSizeFor } = await loadAds();
+    expect(adSizeFor(400, true)).toBe(AD_SIZES[0]);
+    expect(adSizeFor(720, true).name).toBe("300x250");
+    // It stands on its own column: label, links, and box fit the shortest window that uses it.
+    expect(AD_CHROME + AD_SIZES[0].height).toBeLessThanOrEqual(400);
+  });
+
+  it("leaves the game its minimum height under the largest box that fits", async () => {
+    const { AD_CHROME, MIN_GAME_HEIGHT, adSizeFor } = await loadAds();
+    for (let height = 600; height <= 1200; height += 10) {
+      const size = adSizeFor(height);
+      expect(height - AD_CHROME - size.height).toBeGreaterThanOrEqual(MIN_GAME_HEIGHT);
+    }
+  });
+
+  it("only picks sizes the shared loader accepts", async () => {
+    const { AD_SIZES } = await loadAds();
+    const accepted = ["300x250", "320x50", "320x100", "160x600", "300x600", "728x90"];
+    for (const size of AD_SIZES) {
+      expect(accepted).toContain(size.name);
+      expect(size.name).toBe(`${size.width}x${size.height}`);
+    }
+  });
+});
+
 describe("showAd", () => {
   it("loads the shared loader once, then hands it each box", async () => {
     const { showAd } = await loadAds();
