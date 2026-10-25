@@ -1,5 +1,6 @@
 <script>
   import { onMount, tick } from "svelte";
+  import { MediaQuery } from "svelte/reactivity";
   import { flip } from "svelte/animate";
   import Card from "./components/Card.svelte";
   import Help from "./components/Help.svelte";
@@ -25,13 +26,16 @@
   let help = $state();
   let adBox = $state();
   let adShown = $state(false);
+  let viewportHeight = $state(0);
+  const side = new MediaQuery(SIDE_LAYOUT);
+  const adSize = $derived(adSizeFor(viewportHeight, side.current));
   $effect.pre(() => {
     adShown = showsAd(game.phase, adShown);
   });
 
   // One ad per challenge: the box is new each reveal, and the key names the line.
   $effect(() => {
-    if (adBox) showAd(adBox, `${game.target}:${game.line.map((card) => card.id).join(",")}`);
+    if (adBox && game.phase === "reveal") showAd(adBox, `${game.target}:${game.line.map((card) => card.id).join(",")}`);
   });
   let collecting = $state(false);
 
@@ -266,7 +270,7 @@
   const verdict = (card) => (game.result ? (game.badIds.has(card.id) ? "bad" : "good") : null);
 </script>
 
-<svelte:window onkeydown={onKeydown} />
+<svelte:window onkeydown={onKeydown} bind:innerHeight={viewportHeight} />
 
 <div class="page">
 <div class="app" class:dragging={drag} class:collecting class:reveal={adShown}>
@@ -394,19 +398,23 @@
 
   <!-- Under the whole game, so the box is in view with the result and never between two controls. The box keeps its size whether or not an ad fills it. -->
   {#if adShown}
-    {@const size = adSizeFor(window.innerHeight, matchMedia(SIDE_LAYOUT).matches)}
-    <aside class="ad">
-      <a href="https://ihtfy.com/privacy/">Privacy</a>
-      <p>Advertisements</p>
-      <div
-        class="ad-box"
-        bind:this={adBox}
-        data-ad-slot={AD_SLOT}
-        data-ad-size={size.name}
-        style:width="{size.width}px"
-        style:height="{size.height}px"
-      ></div>
-    </aside>
+    <!-- A new box when a turn of the phone changes the size, never a resized one. -->
+    {#key adSize.name}
+      <aside class="ad">
+        <a href="https://ihtfy.com/privacy/">Privacy</a>
+        <p>Advertisements</p>
+        <div
+          class="ad-box"
+          bind:this={adBox}
+          data-ad-slot={AD_SLOT}
+          data-ad-size={adSize.name}
+          style:width="{adSize.width}px"
+          style:height="{adSize.height}px"
+          style:min-height="{adSize.height}px"
+          style:max-height="{adSize.height}px"
+        ></div>
+      </aside>
+    {/key}
   {/if}
 </div>
 
@@ -426,7 +434,7 @@
     flex: none;
     display: grid;
     justify-items: center;
-    padding: 8px 16px max(12px, env(safe-area-inset-bottom));
+    padding: 8px 0 max(12px, env(safe-area-inset-bottom));
     color: var(--muted);
     font-size: 0.75rem;
     line-height: 16px;
@@ -440,8 +448,9 @@
     color: inherit;
   }
 
+  /* No line box around the ad: it adds no strut below the unit. */
   .ad-box {
-    flex: none;
+    line-height: 0;
   }
 
   .app {

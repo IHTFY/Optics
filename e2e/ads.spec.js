@@ -98,14 +98,16 @@ for (const [width, height, size] of SCREENS) {
 }
 
 test("an ad filling the box moves nothing", async ({ page }) => {
-  // Fills the box the way the shared loader does: an inline-block unit of the box's own size.
+  // Fills the box on demand the way the shared loader does: an inline-block unit of the box's own size.
   await stubLoader(
     page,
     `window.ihtfyAds = { show(box) {
-      const ins = document.createElement("ins");
-      const [w, h] = box.dataset.adSize.split("x");
-      Object.assign(ins.style, { display: "inline-block", width: w + "px", height: h + "px" });
-      setTimeout(() => box.appendChild(ins), 100);
+      window.__fill = () => {
+        const ins = document.createElement("ins");
+        const [w, h] = box.dataset.adSize.split("x");
+        Object.assign(ins.style, { display: "inline-block", width: w + "px", height: h + "px" });
+        box.appendChild(ins);
+      };
     } };`,
   );
   for (const [width, height] of SCREENS) {
@@ -115,14 +117,32 @@ test("an ad filling the box moves nothing", async ({ page }) => {
     await page.evaluate(HELPERS);
     await page.evaluate(() => window.__reveal());
     await expect(page.locator(".ad-box")).toBeVisible();
+    await page.waitForFunction(() => window.__fill);
     await page.waitForTimeout(1200);
     const rects = () =>
       page.evaluate(() => [".ad", ".ad-box", ".app", ".primary"].map((q) => JSON.stringify(document.querySelector(q).getBoundingClientRect())));
+    await expect(page.locator(".ad-box ins")).toHaveCount(0);
     const before = await rects();
+    await page.evaluate(() => window.__fill());
     await expect(page.locator(".ad-box ins")).toHaveCount(1);
     await page.waitForTimeout(200);
     expect(await rects()).toEqual(before);
   }
+});
+
+test("turning the phone on the results screen gives a new box of the size that fits", async ({ page }) => {
+  await stubLoader(page);
+  await page.setViewportSize({ width: 412, height: 800 });
+  await page.goto("/");
+  await expect(page.locator(".deck .slot")).toHaveCount(1);
+  await page.evaluate(HELPERS);
+  await page.evaluate(() => window.__reveal());
+  await expect(page.locator(".ad-box")).toHaveAttribute("data-ad-size", "300x250");
+  await page.setViewportSize({ width: 800, height: 412 });
+  await expect(page.locator(".ad-box")).toHaveAttribute("data-ad-size", "320x50");
+  await expect(page.locator(".ad")).toHaveCount(1);
+  const box = await page.locator(".ad-box").boundingBox();
+  expect(box.y + box.height).toBeLessThanOrEqual(412);
 });
 
 test("no ad on the play screen, and the box goes with the results", async ({ page }) => {
