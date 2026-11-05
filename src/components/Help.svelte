@@ -78,6 +78,7 @@
   </div>
 
   <div class="support">
+    <a href="https://ihtfy.com/projects/" target="_blank" rel="noopener">More games</a>
     <a href="https://ihtfy.com/support/" target="_blank" rel="noopener">Support ♥</a>
     <a href="https://ihtfy.com/privacy/" target="_blank" rel="noopener">Privacy</a>
   </div>
