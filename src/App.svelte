@@ -429,6 +429,11 @@
     overflow-y: auto;
   }
 
+  /* A browser holding an ad-free token never shows the box, whether or not the loader arrives (index.html sets the class). */
+  :global(:root.ad-free) .ad {
+    display: none;
+  }
+
   /* Privacy, then the label and box, at least 50px apart. Every control is above or to the left of the box. */
   .ad {
     flex: none;

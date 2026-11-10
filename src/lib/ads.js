@@ -70,7 +70,12 @@ export function loadForBuyer() {
   } catch {
     // A sandboxed frame may not read cookies.
   }
-  if (found) load().catch(() => {});
+  if (!found) return;
+  // The head script in index.html hid the box for this token; a token the loader rejects gets it back.
+  load()
+    .then(() => window.ihtfyAds.adFree())
+    .then((free) => free || document.documentElement.classList.remove("ad-free"))
+    .catch(() => {});
 }
 
 /** Fills `box` with an ad for the game over named `key`; offline or on failure it stays empty. */
