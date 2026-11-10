@@ -206,3 +206,37 @@ test("Enter on the Privacy link follows the link instead of starting the next ro
   await page.keyboard.press("Enter");
   await expect(page).toHaveURL("https://ihtfy.com/privacy/");
 });
+
+test("a stored ad-free token with the loader blocked shows no empty Advertisements box", async ({ page }) => {
+  await page.route(LOADER, (route) => route.abort());
+  await page.setViewportSize({ width: 390, height: 750 });
+  await page.addInitScript(() => localStorage.setItem("ihtfy-ad-free", "x.y"));
+  await page.goto("/");
+  await expect(page.locator(".deck .slot")).toHaveCount(1);
+  await page.evaluate(HELPERS);
+  await page.evaluate(() => window.__reveal());
+  await expect(page.locator(".primary")).toBeVisible();
+  await expect(page.locator(".ad")).toBeHidden();
+});
+
+test("without a token and with the loader blocked, the box stays (nothing to hide it)", async ({ page }) => {
+  await page.route(LOADER, (route) => route.abort());
+  await page.setViewportSize({ width: 390, height: 750 });
+  await page.goto("/");
+  await expect(page.locator(".deck .slot")).toHaveCount(1);
+  await page.evaluate(HELPERS);
+  await page.evaluate(() => window.__reveal());
+  await expect(page.locator(".ad")).toBeVisible();
+});
+
+test("a token the loader rejects brings the box back", async ({ page }) => {
+  await stubLoader(page, "window.ihtfyAds = { show() {}, adFree: async () => false };");
+  await page.setViewportSize({ width: 390, height: 750 });
+  await page.addInitScript(() => localStorage.setItem("ihtfy-ad-free", "bad"));
+  await page.goto("/");
+  await expect(page.locator(".deck .slot")).toHaveCount(1);
+  await expect(page.locator("html")).not.toHaveClass(/ad-free/);
+  await page.evaluate(HELPERS);
+  await page.evaluate(() => window.__reveal());
+  await expect(page.locator(".ad")).toBeVisible();
+});

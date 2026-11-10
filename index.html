@@ -18,6 +18,17 @@
     <meta name="apple-mobile-web-app-title" content="Optics" />
     <link rel="apple-touch-icon" href="/images/icons/icon-192x192.png" />
     <link rel="icon" type="image/png" href="/favicon.png" />
+    <script>
+      // A browser that may hold an ad-free token never paints the results ad box, even offline or with the
+      // loader blocked. loadForBuyer in src/lib/ads.js runs the same test; the shared loader still decides,
+      // and the page brings the box back if the token isn't valid.
+      (() => {
+        let found = false;
+        try { found = Boolean(localStorage.getItem("ihtfy-ad-free")); } catch { /* storage off: the cookie may still hold it */ }
+        try { found ||= /(?:^|;\s*)ihtfy-ad-free=/.test(document.cookie); } catch { /* cookies off too */ }
+        if (found) document.documentElement.classList.add("ad-free");
+      })();
+    </script>
   </head>
   <body>
     <noscript>Oops! Javascript required here! Allow it and try again!</noscript>
