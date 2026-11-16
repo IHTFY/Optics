@@ -189,7 +189,7 @@
     if (!press || e.pointerId !== press.id) return;
     if (!drag) {
       if (Math.hypot(e.clientX - press.x0, e.clientY - press.y0) < 6) return;
-      drag = { ...press, x: e.clientX, y: e.clientY, tilt: 0 };
+      drag = { ...press, card: game.pending, x: e.clientX, y: e.clientY, tilt: 0 };
       requestAnimationFrame(dragFrame);
     }
     const dx = e.clientX - drag.x;
@@ -229,10 +229,10 @@
     window.removeEventListener("pointerup", onPointerUp);
     window.removeEventListener("pointercancel", onPointerUp);
     press = null;
-    if (!drag) return;
-
-    suppressClick = true;
+    if (drag) suppressClick = true;
     setTimeout(() => (suppressClick = false));
+    if (!drag) return;
+    const released = drag;
 
     // Glide the ghost into the pending card's spot, then drop it.
     const ghost = ghostEl;
@@ -249,7 +249,16 @@
         { duration: 180, easing: "cubic-bezier(0.2, 0.8, 0.2, 1)", fill: "forwards" }
       ).finished;
     }
+    if (drag === released) drag = null;
+  }
+
+  function place() {
+    if (!game.canPlace) return;
+    // Keep the press until pointerup so its click cannot move the next card.
+    if (press) suppressClick = true;
+    window.removeEventListener("pointermove", onPointerMove);
     drag = null;
+    game.place();
   }
 
   function onKeydown(e) {
@@ -259,7 +268,7 @@
       if (key === "arrowleft") game.step(-1);
       else if (key === "arrowright") game.step(1);
       else if (key === "escape") game.moveTo(null);
-      else if (key === "enter" && !e.target.closest?.("button")) game.place();
+      else if (key === "enter" && !e.target.closest?.("button")) place();
       else if (key === "c") game.challenge();
       else return;
     } else if (game.phase === "reveal") {
@@ -338,7 +347,7 @@
               onpointerdown={(e) => e.stopPropagation()}
               onclick={(e) => {
                 e.stopPropagation();
-                game.place();
+                place();
               }}
             >
               Place
@@ -394,7 +403,7 @@
       style:height="{drag.height}px"
       style:--tilt="{drag.tilt}deg"
     >
-      <Card card={game.pending} target={game.target} ghost />
+      <Card card={drag.card} target={game.target} ghost />
     </div>
   {/if}
 </main>

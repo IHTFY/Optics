@@ -62,6 +62,32 @@ test("dragging the card into the line", async ({ page, isMobile }) => {
   await expect(lineCards(page).first()).toHaveClass(/is-pending/);
 });
 
+test("placing with Enter during a drag keeps the game free of runtime errors", async ({ page, baseURL }) => {
+  await page.route("**/*", (route) =>
+    new URL(route.request().url()).origin === new URL(baseURL).origin ? route.continue() : route.abort()
+  );
+  const errors = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  await start(page);
+  const deck = await page.locator(".deck .slot").boundingBox();
+  const line = await page.locator(".line").boundingBox();
+  await page.mouse.move(deck.x + deck.width / 2, deck.y + deck.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(line.x + 10, line.y + line.height / 2, { steps: 12 });
+  await expect(page.locator(".drag-ghost")).toHaveCount(1);
+  await expect(page.locator(".line .is-pending")).toHaveCount(1);
+  await page.keyboard.press("Enter");
+  await expect(page.locator(".drag-ghost")).toHaveCount(0);
+  await expect(page.locator(".line .slot:not(.is-pending)")).toHaveCount(2);
+  await expect(page.locator(".deck .slot")).toHaveCount(1);
+  await page.mouse.move(line.x + line.width - 10, line.y + line.height / 2, { steps: 12 });
+  await page.mouse.up();
+  await expect(page.locator(".line .slot:not(.is-pending)")).toHaveCount(2);
+  await expect(page.locator(".line .is-pending")).toHaveCount(0);
+  await expect(page.locator(".deck .slot")).toHaveCount(1);
+  expect(errors).toEqual([]);
+});
+
 test("touch dragging the card into the line", async ({ page, isMobile, browserName }) => {
   test.skip(!isMobile || browserName !== "chromium", "needs CDP touch input");
   await start(page);
