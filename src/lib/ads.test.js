@@ -101,6 +101,26 @@ describe("adSizeFor", () => {
   });
 });
 
+describe("adFits", () => {
+  it("keeps a box no taller than the window allows and drops a taller one", async () => {
+    const { AD_SIZES, adFits } = await loadAds();
+    const [tall, middle, small] = AD_SIZES;
+    // 750 px allows the 320x100 box.
+    expect(adFits(tall, 750)).toBe(false);
+    expect(adFits(middle, 750)).toBe(true);
+    expect(adFits(small, 750)).toBe(true);
+    // 412 px (a phone turned on its side) allows only the smallest box.
+    expect(adFits(tall, 412)).toBe(false);
+    expect(adFits(middle, 412)).toBe(false);
+    expect(adFits(small, 412)).toBe(true);
+  });
+
+  it("keeps any box beside the game, where the window always gives the biggest", async () => {
+    const { AD_SIZES, adFits } = await loadAds();
+    for (const size of AD_SIZES) expect(adFits(size, 400, true)).toBe(true);
+  });
+});
+
 describe("showAd", () => {
   it("loads the shared loader once, then hands it each box", async () => {
     const { showAd } = await loadAds();

@@ -1,12 +1,12 @@
 <script>
-  import { onMount, tick } from "svelte";
+  import { onMount, tick, untrack } from "svelte";
   import { MediaQuery } from "svelte/reactivity";
   import { flip } from "svelte/animate";
   import Card from "./components/Card.svelte";
   import Help from "./components/Help.svelte";
   import Wedge from "./components/Wedge.svelte";
   import OrderToggle from "./components/OrderToggle.svelte";
-  import { AD_SLOT, SIDE_LAYOUT, adSizeFor, showAd, showsAd } from "./lib/ads.js";
+  import { AD_SLOT, SIDE_LAYOUT, adFits, adSizeFor, showAd, showsAd } from "./lib/ads.js";
   import { Game } from "./lib/game.svelte.js";
   import { outOfOrder } from "./lib/order.js";
   import { backOut } from "svelte/easing";
@@ -28,9 +28,12 @@
   let adShown = $state(false);
   let viewportHeight = $state(0);
   const side = new MediaQuery(SIDE_LAYOUT);
-  const adSize = $derived(adSizeFor(viewportHeight, side.current));
+  // The box keeps the size it was given for the whole results screen, so a turn of the phone never swaps it for an empty one.
+  let adSize = $state(null);
+  const adFit = $derived(adSize && adFits(adSize, viewportHeight, side.current));
   $effect.pre(() => {
     adShown = showsAd(game.phase, adShown);
+    adSize = adShown ? (adSize ?? untrack(() => adSizeFor(viewportHeight, side.current))) : null;
   });
 
   // One ad per challenge: the box is new each reveal, and the key names the line.
@@ -397,24 +400,22 @@
 </main>
 
   <!-- Under the whole game, so the box is in view with the result and never between two controls. The box keeps its size whether or not an ad fills it. -->
-  {#if adShown}
-    <!-- A new box when a turn of the phone changes the size, never a resized one. -->
-    {#key adSize.name}
-      <aside class="ad">
-        <a href="https://ihtfy.com/privacy/">Privacy</a>
-        <p>Advertisements</p>
-        <div
-          class="ad-box"
-          bind:this={adBox}
-          data-ad-slot={AD_SLOT}
-          data-ad-size={adSize.name}
-          style:width="{adSize.width}px"
-          style:height="{adSize.height}px"
-          style:min-height="{adSize.height}px"
-          style:max-height="{adSize.height}px"
-        ></div>
-      </aside>
-    {/key}
+  {#if adShown && adSize}
+    <!-- A turn of the phone keeps the box and its ad while it fits; when it no longer fits the whole aside hides, and it comes back with the same ad. No second ad is asked for. -->
+    <aside class="ad" class:unfit={!adFit}>
+      <a href="https://ihtfy.com/privacy/">Privacy</a>
+      <p>Advertisements</p>
+      <div
+        class="ad-box"
+        bind:this={adBox}
+        data-ad-slot={AD_SLOT}
+        data-ad-size={adSize.name}
+        style:width="{adSize.width}px"
+        style:height="{adSize.height}px"
+        style:min-height="{adSize.height}px"
+        style:max-height="{adSize.height}px"
+      ></div>
+    </aside>
   {/if}
 </div>
 
@@ -431,6 +432,11 @@
 
   /* A browser holding an ad-free token never shows the box, whether or not the loader arrives (index.html sets the class). */
   :global(:root.ad-free) .ad {
+    display: none;
+  }
+
+  /* A turn of the phone left no room for this box: hide the label and Privacy link with it, so no empty box shows. */
+  .ad.unfit {
     display: none;
   }
 

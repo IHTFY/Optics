@@ -41,6 +41,9 @@ export const adSizeFor = (viewportHeight, side = false) =>
     ? AD_SIZES[0]
     : (AD_SIZES.find((size) => viewportHeight - AD_CHROME - size.height >= MIN_GAME_HEIGHT) ?? AD_SIZES.at(-1));
 
+/** Whether a box already on the page may stay in a viewport `viewportHeight` px high: no taller than the tallest box that window allows. */
+export const adFits = (size, viewportHeight, side = false) => size.height <= adSizeFor(viewportHeight, side).height;
+
 let loader = null;
 
 const load = () =>
