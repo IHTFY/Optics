@@ -20,6 +20,7 @@ export class Game {
   sorted = $state(false);
 
   #queue = [];
+  #round = 0;
 
   /** The line as displayed, including the pending card when it has a slot. */
   row = $derived.by(() => {
@@ -53,6 +54,7 @@ export class Game {
   }
 
   async newRound() {
+    this.#round++;
     const discarded = [...this.line, this.pending].filter(Boolean);
     const others = COLORS.filter((c) => c !== this.target || this.phase === "loading");
 
@@ -95,8 +97,10 @@ export class Game {
     this.line = line;
     this.pending = null;
     this.slot = null;
+    const round = this.#round;
     const next = await this.#draw(line);
-    if (this.phase === "play") this.pending = next;
+    if (this.phase === "play" && round === this.#round) this.pending = next;
+    else release(next);
   }
 
   challenge() {
