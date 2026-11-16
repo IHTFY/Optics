@@ -273,7 +273,7 @@
 <svelte:window onkeydown={onKeydown} bind:innerHeight={viewportHeight} />
 
 <div class="page">
-<div class="app" class:dragging={drag} class:collecting class:reveal={adShown}>
+<main class="app" class:dragging={drag} class:collecting class:reveal={adShown}>
   <header>
     <h1>Optics</h1>
     <button class="icon" aria-label="How to play" onclick={() => help.open()}>
@@ -394,7 +394,7 @@
       <Card card={game.pending} target={game.target} ghost />
     </div>
   {/if}
-</div>
+</main>
 
   <!-- Under the whole game, so the box is in view with the result and never between two controls. The box keeps its size whether or not an ad fills it. -->
   {#if adShown}
