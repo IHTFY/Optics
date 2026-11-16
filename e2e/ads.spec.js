@@ -130,19 +130,56 @@ test("an ad filling the box moves nothing", async ({ page }) => {
   }
 });
 
-test("turning the phone on the results screen gives a new box of the size that fits", async ({ page }) => {
-  await stubLoader(page);
-  await page.setViewportSize({ width: 412, height: 800 });
+/** Reveals a result at `width`×`height` with a loader that records each request and can fill the box. */
+async function revealWithLoader(page, width, height) {
+  await stubLoader(
+    page,
+    `window.ihtfyAds = { show(box, key) {
+      (window.__shown ??= []).push(key);
+      const ins = document.createElement("ins");
+      ins.className = "filled";
+      box.appendChild(ins);
+    } };`,
+  );
+  await page.setViewportSize({ width, height });
   await page.goto("/");
   await expect(page.locator(".deck .slot")).toHaveCount(1);
   await page.evaluate(HELPERS);
   await page.evaluate(() => window.__reveal());
+  await expect(page.locator(".ad-box ins.filled")).toHaveCount(1);
+}
+
+test("turning the phone so the box no longer fits hides the whole ad, and turning back shows the same ad", async ({ page }) => {
+  await revealWithLoader(page, 412, 800);
   await expect(page.locator(".ad-box")).toHaveAttribute("data-ad-size", "300x250");
+  await page.evaluate(() => (document.querySelector(".ad-box").dataset.mark = "first"));
+
   await page.setViewportSize({ width: 800, height: 412 });
+  await expect(page.locator(".ad")).toBeHidden();
+  await expect(page.locator(".ad p")).toBeHidden();
+  await expect(page.locator(".primary")).toBeVisible();
+
+  await page.setViewportSize({ width: 412, height: 800 });
+  await expect(page.locator(".ad")).toBeVisible();
+  await expect(page.locator(".ad p")).toHaveText("Advertisements");
+  await expect(page.locator(".ad-box")).toHaveAttribute("data-mark", "first");
+  await expect(page.locator(".ad-box ins.filled")).toHaveCount(1);
+  expect(await page.evaluate(() => window.__shown.length), "a turn of the phone never asks for another ad").toBe(1);
+});
+
+test("turning the phone keeps a box that still fits, with its ad, and asks for no new ad", async ({ page }) => {
+  await revealWithLoader(page, 800, 412);
   await expect(page.locator(".ad-box")).toHaveAttribute("data-ad-size", "320x50");
-  await expect(page.locator(".ad")).toHaveCount(1);
+  await page.evaluate(() => (document.querySelector(".ad-box").dataset.mark = "first"));
+
+  await page.setViewportSize({ width: 412, height: 800 });
+  await expect(page.locator(".ad")).toBeVisible();
+  await expect(page.locator(".ad-box")).toHaveAttribute("data-mark", "first");
+  await expect(page.locator(".ad-box")).toHaveAttribute("data-ad-size", "320x50");
+  await expect(page.locator(".ad-box ins.filled")).toHaveCount(1);
   const box = await page.locator(".ad-box").boundingBox();
-  expect(box.y + box.height).toBeLessThanOrEqual(412);
+  expect(box.y + box.height).toBeLessThanOrEqual(800);
+  expect(await page.evaluate(() => window.__shown.length)).toBe(1);
 });
 
 test("no ad on the play screen, and the box goes with the results", async ({ page }) => {
