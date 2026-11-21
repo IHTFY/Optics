@@ -47,6 +47,9 @@ export async function createCard(seed = randomSeed()) {
 
 export const percent = (count) => (100 * count) / CARD_PIXELS;
 
-export const formatPercent = (count) => `${percent(count).toFixed(1)}%`;
+// One decimal, in the browser's own locale: "47.3%" in US English, "47,3 %" in French.
+const percentFormat = new Intl.NumberFormat(undefined, { style: "percent", minimumFractionDigits: 1, maximumFractionDigits: 1 });
+
+export const formatPercent = (count) => percentFormat.format(count / CARD_PIXELS);
 
 export { COLORS };
