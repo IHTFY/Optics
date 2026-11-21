@@ -1,12 +1,11 @@
 <script>
-  import { onMount, tick, untrack } from "svelte";
-  import { MediaQuery } from "svelte/reactivity";
+  import { onMount, tick } from "svelte";
   import { flip } from "svelte/animate";
   import Card from "./components/Card.svelte";
   import Help from "./components/Help.svelte";
   import Wedge from "./components/Wedge.svelte";
   import OrderToggle from "./components/OrderToggle.svelte";
-  import { AD_SLOT, SIDE_LAYOUT, adFits, adSizeFor, showAd, showsAd } from "./lib/ads.js";
+  import { AD_SLOT, LANDSCAPE_LAYOUT, SIDE_LAYOUT, adFits, adSizeFor, showAd, showsAd } from "./lib/ads.js";
   import { Game } from "./lib/game.svelte.js";
   import { outOfOrder } from "./lib/order.js";
   import { backOut } from "svelte/easing";
@@ -26,14 +25,23 @@
   let help = $state();
   let adBox = $state();
   let adShown = $state(false);
-  let viewportHeight = $state(0);
-  const side = new MediaQuery(SIDE_LAYOUT);
+  // The window's size and layout, read together on each resize, so a box is never picked from a half-updated pair.
+  const measure = () => ({
+    width: innerWidth,
+    height: innerHeight,
+    side: matchMedia(SIDE_LAYOUT).matches,
+    landscape: matchMedia(LANDSCAPE_LAYOUT).matches,
+    inset: parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--safe-bottom")) || 0,
+  });
+  let viewport = $state.raw(measure());
   // The box keeps the size it was given for the whole results screen, so a turn of the phone never swaps it for an empty one.
   let adSize = $state(null);
-  const adFit = $derived(adSize && adFits(adSize, viewportHeight, side.current));
+  const adFit = $derived(adSize && adFits(adSize, viewport));
   $effect.pre(() => {
     adShown = showsAd(game.phase, adShown);
-    adSize = adShown ? (adSize ?? untrack(() => adSizeFor(viewportHeight, side.current))) : null;
+    if (!adShown) adSize = null;
+    // A window with room for no box gets none; if a turn of the phone makes room during the results, the box comes then.
+    else if (game.phase === "reveal") adSize ??= adSizeFor(viewport);
   });
 
   // One ad per challenge: the box is new each reveal, and the key names the line.
@@ -282,7 +290,7 @@
   const verdict = (card) => (game.result ? (game.badIds.has(card.id) ? "bad" : "good") : null);
 </script>
 
-<svelte:window onkeydown={onKeydown} bind:innerHeight={viewportHeight} />
+<svelte:window onkeydown={onKeydown} onresize={() => (viewport = measure())} />
 
 <div class="page">
 <main class="app" class:dragging={drag} class:collecting class:reveal={adShown}>
@@ -454,7 +462,7 @@
     flex: none;
     display: grid;
     justify-items: center;
-    padding: 8px 0 max(12px, env(safe-area-inset-bottom));
+    padding: 8px 0 max(12px, var(--safe-bottom));
     color: var(--muted);
     font-size: 0.75rem;
     line-height: 16px;
@@ -791,7 +799,7 @@
     }
   }
 
-  /* Landscape: hand on the left, line fills the rest. */
+  /* Landscape: hand on the left, line fills the rest. Keep in step with LANDSCAPE_LAYOUT in ads.js. */
   @media (min-aspect-ratio: 5 / 4) {
     .app {
       grid-template:

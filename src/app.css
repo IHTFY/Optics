@@ -18,6 +18,8 @@
   --on-accent: #1d1400;
   --on-red: #fff;
   --accent-glow: #ff9f1c33;
+  /* Read from script too (App.svelte), to count the room the results ad has. */
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
   color-scheme: dark;
 }
 
