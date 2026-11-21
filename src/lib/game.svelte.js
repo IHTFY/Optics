@@ -20,6 +20,7 @@ export class Game {
   sorted = $state(false);
 
   #queue = [];
+  #refilling = false;
   #round = 0;
 
   /** The line as displayed, including the pending card when it has a slot. */
@@ -46,11 +47,25 @@ export class Game {
     const target = this.target;
     const amounts = taken.map((card) => card.counts[target]);
     for (let redraws = 0; ; redraws++) {
-      while (this.#queue.length < PREFETCH + 1) this.#queue.push(createCard());
-      const card = await this.#queue.shift();
+      // Only an empty queue draws here, in the caller's own task.
+      const card = await (this.#queue.shift() ?? createCard());
+      this.#refill();
       if (redraws >= MAX_REDRAWS || isDistinct(card.counts[target], amounts)) return card;
       release(card);
     }
+  }
+
+  /** Tops the queue up one card per frame, once that frame has painted: drawing a card is slow enough to hold up the response to a tap. */
+  #refill() {
+    if (this.#refilling || this.#queue.length >= PREFETCH) return;
+    this.#refilling = true;
+    requestAnimationFrame(() =>
+      setTimeout(() => {
+        this.#refilling = false;
+        this.#queue.push(createCard());
+        this.#refill();
+      })
+    );
   }
 
   async newRound() {
