@@ -1,12 +1,12 @@
 <script>
-  import { onMount, tick, untrack } from "svelte";
+  import { onMount, tick } from "svelte";
   import { MediaQuery } from "svelte/reactivity";
   import { flip } from "svelte/animate";
   import Card from "./components/Card.svelte";
   import Help from "./components/Help.svelte";
   import Wedge from "./components/Wedge.svelte";
   import OrderToggle from "./components/OrderToggle.svelte";
-  import { AD_SLOT, SIDE_LAYOUT, adFits, adSizeFor, showAd, showsAd } from "./lib/ads.js";
+  import { AD_SLOT, LANDSCAPE_LAYOUT, SIDE_LAYOUT, adFits, adSizeFor, showAd, showsAd } from "./lib/ads.js";
   import { Game } from "./lib/game.svelte.js";
   import { outOfOrder } from "./lib/order.js";
   import { backOut } from "svelte/easing";
@@ -26,14 +26,19 @@
   let help = $state();
   let adBox = $state();
   let adShown = $state(false);
+  let viewportWidth = $state(0);
   let viewportHeight = $state(0);
   const side = new MediaQuery(SIDE_LAYOUT);
+  const landscape = new MediaQuery(LANDSCAPE_LAYOUT);
+  const layout = $derived({ side: side.current, landscape: landscape.current });
   // The box keeps the size it was given for the whole results screen, so a turn of the phone never swaps it for an empty one.
   let adSize = $state(null);
-  const adFit = $derived(adSize && adFits(adSize, viewportHeight, side.current));
+  const adFit = $derived(adSize && adFits(adSize, viewportWidth, viewportHeight, layout));
   $effect.pre(() => {
     adShown = showsAd(game.phase, adShown);
-    adSize = adShown ? (adSize ?? untrack(() => adSizeFor(viewportHeight, side.current))) : null;
+    if (!adShown) adSize = null;
+    // A window with room for no box gets none; if a turn of the phone makes room during the results, the box comes then.
+    else if (game.phase === "reveal") adSize ??= adSizeFor(viewportWidth, viewportHeight, layout);
   });
 
   // One ad per challenge: the box is new each reveal, and the key names the line.
@@ -282,7 +287,7 @@
   const verdict = (card) => (game.result ? (game.badIds.has(card.id) ? "bad" : "good") : null);
 </script>
 
-<svelte:window onkeydown={onKeydown} bind:innerHeight={viewportHeight} />
+<svelte:window onkeydown={onKeydown} bind:innerWidth={viewportWidth} bind:innerHeight={viewportHeight} />
 
 <div class="page">
 <main class="app" class:dragging={drag} class:collecting class:reveal={adShown}>
@@ -791,7 +796,7 @@
     }
   }
 
-  /* Landscape: hand on the left, line fills the rest. */
+  /* Landscape: hand on the left, line fills the rest. Keep in step with LANDSCAPE_LAYOUT in ads.js. */
   @media (min-aspect-ratio: 5 / 4) {
     .app {
       grid-template:

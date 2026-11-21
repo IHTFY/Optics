@@ -277,3 +277,89 @@ test("a token the loader rejects brings the box back", async ({ page }) => {
   await page.evaluate(() => window.__reveal());
   await expect(page.locator(".ad")).toBeVisible();
 });
+
+test("a token the loader rejects brings the box back when the loader only arrives with the results", async ({ page }) => {
+  // The startup request fails (a network blip), and the one made for the first results goes through.
+  let requests = 0;
+  await page.route(LOADER, (route) =>
+    requests++
+      ? route.fulfill({
+          contentType: "text/javascript",
+          body: "window.ihtfyAds = { show: (box, key) => (window.__shown ??= []).push(key), adFree: async () => false };",
+        })
+      : route.abort(),
+  );
+  await page.setViewportSize({ width: 390, height: 750 });
+  await page.addInitScript(() => localStorage.setItem("ihtfy-ad-free", "expired"));
+  await page.goto("/");
+  await expect(page.locator(".deck .slot")).toHaveCount(1);
+  await expect.poll(() => requests).toBe(1);
+  await expect(page.locator('script[src="https://ihtfy.com/ads/v1.js"]')).toHaveCount(0);
+  await expect(page.locator("html")).toHaveClass(/ad-free/);
+
+  await page.evaluate(HELPERS);
+  await page.evaluate(() => window.__reveal());
+  await expect(page.locator("html")).not.toHaveClass(/ad-free/);
+  await expect(page.locator(".ad")).toBeVisible();
+  await expect(page.locator(".ad p")).toHaveText("Advertisements");
+  await expect.poll(() => page.evaluate(() => window.__shown?.length)).toBe(1);
+});
+
+/** Windows with room for no box: narrower than the box that would fit their height, or too short for the game above the smallest. */
+const NO_ROOM = [
+  [318, 640],
+  [320, 480],
+  [568, 280],
+  [844, 390],
+];
+
+for (const [width, height] of NO_ROOM) {
+  test(`at ${width}×${height} the results carry no ad, and the game keeps the whole screen`, async ({ page }) => {
+    const loads = [];
+    await page.route(LOADER, (route) => {
+      loads.push(route.request().url());
+      route.fulfill({ contentType: "text/javascript", body: "window.ihtfyAds = { show: (box, key) => (window.__shown ??= []).push(key) };" });
+    });
+    await page.setViewportSize({ width, height });
+    await page.goto("/");
+    await expect(page.locator(".deck .slot")).toHaveCount(1);
+    await page.evaluate(HELPERS);
+    await page.evaluate(() => window.__reveal());
+    await expect(page.locator(".primary")).toBeVisible();
+    await page.waitForTimeout(1200);
+    await expect(page.locator(".ad")).toHaveCount(0);
+    expect(loads, "no box, so nothing asks for the loader").toEqual([]);
+    const m = await page.evaluate(() => {
+      const page_ = document.querySelector(".page");
+      const next = document.querySelector(".primary").getBoundingClientRect();
+      return { page: page_.clientHeight, scroll: page_.scrollHeight, app: document.querySelector(".app").getBoundingClientRect().height, next: next.bottom, view: innerHeight };
+    });
+    expect(m.app).toBe(m.page);
+    expect(m.scroll).toBe(m.page);
+    expect(m.next).toBeLessThanOrEqual(m.view);
+  });
+}
+
+test("a turn of the phone that makes room during the results brings the box, with one ad", async ({ page }) => {
+  await stubLoader(page);
+  await page.setViewportSize({ width: 844, height: 390 });
+  await page.goto("/");
+  await expect(page.locator(".deck .slot")).toHaveCount(1);
+  await page.evaluate(HELPERS);
+  await page.evaluate(() => window.__reveal());
+  await expect(page.locator(".primary")).toBeVisible();
+  await expect(page.locator(".ad")).toHaveCount(0);
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(page.locator(".ad-box")).toHaveAttribute("data-ad-size", "300x250");
+  await expect.poll(() => page.evaluate(() => window.__shown?.length)).toBe(1);
+  const box = await page.locator(".ad-box").boundingBox();
+  expect(box.y + box.height).toBeLessThanOrEqual(844);
+
+  // Back on its side, the box hides again; it asks for no second ad either way.
+  await page.setViewportSize({ width: 844, height: 390 });
+  await expect(page.locator(".ad")).toBeHidden();
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(page.locator(".ad")).toBeVisible();
+  expect(await page.evaluate(() => window.__shown.length)).toBe(1);
+});

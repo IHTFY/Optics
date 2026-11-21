@@ -22,6 +22,9 @@ export const AD_CHROME = 88;
 /** The least height the board, cards, and Next round button need to stay readable. */
 export const MIN_GAME_HEIGHT = 450;
 
+/** The same in landscape, where the hand stands beside the line instead of under it: the cards come out as large as at the portrait minimum. */
+export const MIN_LANDSCAPE_GAME_HEIGHT = 270;
+
 /**
  * Whether the results ad is on the page in `phase`, given whether it was just before.
  * Only the results screen carries one, never the play screen, where a phone is mid-game.
@@ -32,17 +35,19 @@ export const showsAd = (phase, was = false) => phase === "reveal" || (phase === 
 /** Windows where the ad stands to the right of the game instead of below it (App.svelte's CSS repeats this query). */
 export const SIDE_LAYOUT = "(min-aspect-ratio: 5/4) and (min-width: 1000px) and (min-height: 400px)";
 
-/**
- * The tallest box that leaves the game its room in a viewport `viewportHeight` px high.
- * Beside the game, the full height is the game's, and the biggest box fits the least height there is.
- */
-export const adSizeFor = (viewportHeight, side = false) =>
-  side
-    ? AD_SIZES[0]
-    : (AD_SIZES.find((size) => viewportHeight - AD_CHROME - size.height >= MIN_GAME_HEIGHT) ?? AD_SIZES.at(-1));
+/** Windows where the hand stands beside the line (App.svelte's CSS repeats this query). */
+export const LANDSCAPE_LAYOUT = "(min-aspect-ratio: 5/4)";
 
-/** Whether a box already on the page may stay in a viewport `viewportHeight` px high: no taller than the tallest box that window allows. */
-export const adFits = (size, viewportHeight, side = false) => size.height <= adSizeFor(viewportHeight, side).height;
+/**
+ * Whether `size` has room in a viewport `width` × `height` px: no wider than the page, and the game keeps its least height above it.
+ * Beside the game, the full height is the game's, and the biggest box fits the least window that layout has.
+ */
+export const adFits = (size, width, height, { side = false, landscape = false } = {}) =>
+  side ||
+  (width >= size.width && height - AD_CHROME - size.height >= (landscape ? MIN_LANDSCAPE_GAME_HEIGHT : MIN_GAME_HEIGHT));
+
+/** The tallest box with room in the viewport, or null when none has: that results screen carries no ad. */
+export const adSizeFor = (width, height, layout) => AD_SIZES.find((size) => adFits(size, width, height, layout)) ?? null;
 
 let loader = null;
 
@@ -60,6 +65,16 @@ const load = () =>
     document.head.appendChild(script);
   }));
 
+// Set while the head script in index.html hides the box for a token the loader has yet to check.
+let unchecked = false;
+
+/** Has the loader, now on the page, check the token; one it rejects gets the box back. */
+function checkToken() {
+  if (!unchecked) return;
+  unchecked = false;
+  return window.ihtfyAds.adFree().then((free) => free || document.documentElement.classList.remove("ad-free"));
+}
+
 /** Loads the loader now if this browser holds an ad-free token; the loader checks it. */
 export function loadForBuyer() {
   let found = false;
@@ -74,10 +89,10 @@ export function loadForBuyer() {
     // A sandboxed frame may not read cookies.
   }
   if (!found) return;
-  // The head script in index.html hid the box for this token; a token the loader rejects gets it back.
+  unchecked = true;
+  // If this load fails, the token is checked when a later one succeeds (showAd).
   load()
-    .then(() => window.ihtfyAds.adFree())
-    .then((free) => free || document.documentElement.classList.remove("ad-free"))
+    .then(checkToken)
     .catch(() => {});
 }
 
@@ -85,7 +100,10 @@ export function loadForBuyer() {
 export function showAd(box, key) {
   if (!navigator.onLine) return;
   load().then(
-    () => box.isConnected && window.ihtfyAds.show(box, key),
+    () => {
+      checkToken();
+      if (box.isConnected) window.ihtfyAds.show(box, key);
+    },
     () => {},
   );
 }

@@ -68,26 +68,51 @@ describe("adSizeFor", () => {
     [915, "300x250"],
     [750, "320x100"],
     [640, "320x100"],
-    [480, "320x50"],
-    [300, "320x50"],
-  ])("a %i px tall screen gets a %s box", async (height, name) => {
+    [588, "320x50"],
+  ])("a 360 px wide, %i px tall screen gets a %s box", async (height, name) => {
     const { adSizeFor } = await loadAds();
-    expect(adSizeFor(height).name).toBe(name);
+    expect(adSizeFor(360, height).name).toBe(name);
+  });
+
+  it.each([
+    [360, 587],
+    [320, 480],
+    [360, 300],
+  ])("a %i×%i screen is too short for any box under the game, so it gets none", async (width, height) => {
+    const { adSizeFor } = await loadAds();
+    expect(adSizeFor(width, height)).toBeNull();
+  });
+
+  it("gives no box wider than the screen", async () => {
+    const { adSizeFor } = await loadAds();
+    // 318 px is narrower than both 320 px boxes, and 640 px is too short for the 300 px one.
+    expect(adSizeFor(318, 640)).toBeNull();
+    expect(adSizeFor(318, 800).name).toBe("300x250");
+    expect(adSizeFor(299, 800)).toBeNull();
+  });
+
+  it("gives a phone on its side the smallest box only while the game keeps its landscape height", async () => {
+    const { adSizeFor } = await loadAds();
+    expect(adSizeFor(800, 412, { landscape: true }).name).toBe("320x50");
+    expect(adSizeFor(568, 280, { landscape: true })).toBeNull();
+    expect(adSizeFor(844, 390, { landscape: true })).toBeNull();
   });
 
   it("gives the 300x250 box beside the game on a wide window, whatever its height", async () => {
     const { AD_CHROME, AD_SIZES, adSizeFor } = await loadAds();
-    expect(adSizeFor(400, true)).toBe(AD_SIZES[0]);
-    expect(adSizeFor(720, true).name).toBe("300x250");
+    expect(adSizeFor(1000, 400, { side: true, landscape: true })).toBe(AD_SIZES[0]);
+    expect(adSizeFor(1280, 720, { side: true, landscape: true }).name).toBe("300x250");
     // It stands on its own column: label, links, and box fit the shortest window that uses it.
     expect(AD_CHROME + AD_SIZES[0].height).toBeLessThanOrEqual(400);
   });
 
-  it("leaves the game its minimum height under the largest box that fits", async () => {
-    const { AD_CHROME, MIN_GAME_HEIGHT, adSizeFor } = await loadAds();
-    for (let height = 600; height <= 1200; height += 10) {
-      const size = adSizeFor(height);
-      expect(height - AD_CHROME - size.height).toBeGreaterThanOrEqual(MIN_GAME_HEIGHT);
+  it("leaves the game its minimum height under any box it picks", async () => {
+    const { AD_CHROME, MIN_GAME_HEIGHT, MIN_LANDSCAPE_GAME_HEIGHT, adSizeFor } = await loadAds();
+    for (let height = 200; height <= 1200; height += 10) {
+      const size = adSizeFor(360, height);
+      if (size) expect(height - AD_CHROME - size.height).toBeGreaterThanOrEqual(MIN_GAME_HEIGHT);
+      const turned = adSizeFor(900, height, { landscape: true });
+      if (turned) expect(height - AD_CHROME - turned.height).toBeGreaterThanOrEqual(MIN_LANDSCAPE_GAME_HEIGHT);
     }
   });
 
@@ -102,22 +127,37 @@ describe("adSizeFor", () => {
 });
 
 describe("adFits", () => {
-  it("keeps a box no taller than the window allows and drops a taller one", async () => {
+  it("keeps a box the window has room for and drops a taller one", async () => {
     const { AD_SIZES, adFits } = await loadAds();
     const [tall, middle, small] = AD_SIZES;
     // 750 px allows the 320x100 box.
-    expect(adFits(tall, 750)).toBe(false);
-    expect(adFits(middle, 750)).toBe(true);
-    expect(adFits(small, 750)).toBe(true);
+    expect(adFits(tall, 360, 750)).toBe(false);
+    expect(adFits(middle, 360, 750)).toBe(true);
+    expect(adFits(small, 360, 750)).toBe(true);
     // 412 px (a phone turned on its side) allows only the smallest box.
-    expect(adFits(tall, 412)).toBe(false);
-    expect(adFits(middle, 412)).toBe(false);
-    expect(adFits(small, 412)).toBe(true);
+    expect(adFits(tall, 800, 412, { landscape: true })).toBe(false);
+    expect(adFits(middle, 800, 412, { landscape: true })).toBe(false);
+    expect(adFits(small, 800, 412, { landscape: true })).toBe(true);
+  });
+
+  it("drops every box when the window has room for none", async () => {
+    const { AD_SIZES, adFits } = await loadAds();
+    for (const size of AD_SIZES) {
+      expect(adFits(size, 568, 280, { landscape: true })).toBe(false);
+      expect(adFits(size, 360, 480)).toBe(false);
+    }
+  });
+
+  it("drops a box wider than the window", async () => {
+    const { AD_SIZES, adFits } = await loadAds();
+    const [tall, middle] = AD_SIZES;
+    expect(adFits(middle, 318, 800)).toBe(false);
+    expect(adFits(tall, 318, 800)).toBe(true);
   });
 
   it("keeps any box beside the game, where the window always gives the biggest", async () => {
     const { AD_SIZES, adFits } = await loadAds();
-    for (const size of AD_SIZES) expect(adFits(size, 400, true)).toBe(true);
+    for (const size of AD_SIZES) expect(adFits(size, 1000, 400, { side: true, landscape: true })).toBe(true);
   });
 });
 
@@ -189,6 +229,50 @@ describe("loadForBuyer", () => {
     const { loadForBuyer } = await loadAds();
     loadForBuyer();
     expect(added).toHaveLength(1);
+  });
+
+  it("has the loader check the token when a later load succeeds after the startup load failed", async () => {
+    storage["ihtfy-ad-free"] = "expired";
+    const classes = new Set(["ad-free"]);
+    document.documentElement = { classList: { remove: (name) => classes.delete(name) } };
+    let checks = 0;
+    window.ihtfyAds.adFree = async () => {
+      checks++;
+      return false;
+    };
+    const { loadForBuyer, showAd } = await loadAds();
+    loadForBuyer();
+    added[0].dispatch("error");
+    await tick();
+    expect(classes.has("ad-free")).toBe(true);
+
+    const a = box();
+    showAd(a, "a");
+    added[1].dispatch("load");
+    await tick();
+    expect(checks).toBe(1);
+    expect(classes.has("ad-free")).toBe(false);
+    expect(shown).toEqual([[a, "a"]]);
+
+    // Checked once: later results only ask for their ad.
+    showAd(a, "b");
+    await tick();
+    expect(checks).toBe(1);
+  });
+
+  it("keeps the box hidden when the later check accepts the token", async () => {
+    storage["ihtfy-ad-free"] = "x.y.z";
+    const classes = new Set(["ad-free"]);
+    document.documentElement = { classList: { remove: (name) => classes.delete(name) } };
+    window.ihtfyAds.adFree = async () => true;
+    const { loadForBuyer, showAd } = await loadAds();
+    loadForBuyer();
+    added[0].dispatch("error");
+    await tick();
+    showAd(box(), "a");
+    added[1].dispatch("load");
+    await tick();
+    expect(classes.has("ad-free")).toBe(true);
   });
 
   it("still starts when the cookie cannot be read", async () => {
