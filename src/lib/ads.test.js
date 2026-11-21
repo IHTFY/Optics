@@ -71,7 +71,7 @@ describe("adSizeFor", () => {
     [588, "320x50"],
   ])("a 360 px wide, %i px tall screen gets a %s box", async (height, name) => {
     const { adSizeFor } = await loadAds();
-    expect(adSizeFor(360, height).name).toBe(name);
+    expect(adSizeFor({ width: 360, height }).name).toBe(name);
   });
 
   it.each([
@@ -80,38 +80,48 @@ describe("adSizeFor", () => {
     [360, 300],
   ])("a %i×%i screen is too short for any box under the game, so it gets none", async (width, height) => {
     const { adSizeFor } = await loadAds();
-    expect(adSizeFor(width, height)).toBeNull();
+    expect(adSizeFor({ width, height })).toBeNull();
   });
 
   it("gives no box wider than the screen", async () => {
     const { adSizeFor } = await loadAds();
     // 318 px is narrower than both 320 px boxes, and 640 px is too short for the 300 px one.
-    expect(adSizeFor(318, 640)).toBeNull();
-    expect(adSizeFor(318, 800).name).toBe("300x250");
-    expect(adSizeFor(299, 800)).toBeNull();
+    expect(adSizeFor({ width: 318, height: 640 })).toBeNull();
+    expect(adSizeFor({ width: 318, height: 800 }).name).toBe("300x250");
+    expect(adSizeFor({ width: 299, height: 800 })).toBeNull();
   });
 
   it("gives a phone on its side the smallest box only while the game keeps its landscape height", async () => {
     const { adSizeFor } = await loadAds();
-    expect(adSizeFor(800, 412, { landscape: true }).name).toBe("320x50");
-    expect(adSizeFor(568, 280, { landscape: true })).toBeNull();
-    expect(adSizeFor(844, 390, { landscape: true })).toBeNull();
+    expect(adSizeFor({ width: 800, height: 412, landscape: true }).name).toBe("320x50");
+    expect(adSizeFor({ width: 568, height: 280, landscape: true })).toBeNull();
+    expect(adSizeFor({ width: 844, height: 390, landscape: true })).toBeNull();
   });
 
   it("gives the 300x250 box beside the game on a wide window, whatever its height", async () => {
     const { AD_CHROME, AD_SIZES, adSizeFor } = await loadAds();
-    expect(adSizeFor(1000, 400, { side: true, landscape: true })).toBe(AD_SIZES[0]);
-    expect(adSizeFor(1280, 720, { side: true, landscape: true }).name).toBe("300x250");
+    expect(adSizeFor({ width: 1000, height: 400, side: true, landscape: true })).toBe(AD_SIZES[0]);
+    expect(adSizeFor({ width: 1280, height: 720, side: true, landscape: true }).name).toBe("300x250");
     // It stands on its own column: label, links, and box fit the shortest window that uses it.
     expect(AD_CHROME + AD_SIZES[0].height).toBeLessThanOrEqual(400);
+  });
+
+  it("counts a bottom safe area deeper than the padding under the box", async () => {
+    const { adSizeFor } = await loadAds();
+    // 800 − 88 − 250 leaves the game 462 px; a 34 px safe area takes 22 px more than the 12 px padding.
+    expect(adSizeFor({ width: 390, height: 800 }).name).toBe("300x250");
+    expect(adSizeFor({ width: 390, height: 800, inset: 12 }).name).toBe("300x250");
+    expect(adSizeFor({ width: 390, height: 800, inset: 34 }).name).toBe("320x100");
+    expect(adSizeFor({ width: 360, height: 600, inset: 34 })).toBeNull();
+    expect(adSizeFor({ width: 1000, height: 400, side: true, inset: 34 }).name).toBe("300x250");
   });
 
   it("leaves the game its minimum height under any box it picks", async () => {
     const { AD_CHROME, MIN_GAME_HEIGHT, MIN_LANDSCAPE_GAME_HEIGHT, adSizeFor } = await loadAds();
     for (let height = 200; height <= 1200; height += 10) {
-      const size = adSizeFor(360, height);
+      const size = adSizeFor({ width: 360, height });
       if (size) expect(height - AD_CHROME - size.height).toBeGreaterThanOrEqual(MIN_GAME_HEIGHT);
-      const turned = adSizeFor(900, height, { landscape: true });
+      const turned = adSizeFor({ width: 900, height, landscape: true });
       if (turned) expect(height - AD_CHROME - turned.height).toBeGreaterThanOrEqual(MIN_LANDSCAPE_GAME_HEIGHT);
     }
   });
@@ -131,33 +141,33 @@ describe("adFits", () => {
     const { AD_SIZES, adFits } = await loadAds();
     const [tall, middle, small] = AD_SIZES;
     // 750 px allows the 320x100 box.
-    expect(adFits(tall, 360, 750)).toBe(false);
-    expect(adFits(middle, 360, 750)).toBe(true);
-    expect(adFits(small, 360, 750)).toBe(true);
+    expect(adFits(tall, { width: 360, height: 750 })).toBe(false);
+    expect(adFits(middle, { width: 360, height: 750 })).toBe(true);
+    expect(adFits(small, { width: 360, height: 750 })).toBe(true);
     // 412 px (a phone turned on its side) allows only the smallest box.
-    expect(adFits(tall, 800, 412, { landscape: true })).toBe(false);
-    expect(adFits(middle, 800, 412, { landscape: true })).toBe(false);
-    expect(adFits(small, 800, 412, { landscape: true })).toBe(true);
+    expect(adFits(tall, { width: 800, height: 412, landscape: true })).toBe(false);
+    expect(adFits(middle, { width: 800, height: 412, landscape: true })).toBe(false);
+    expect(adFits(small, { width: 800, height: 412, landscape: true })).toBe(true);
   });
 
   it("drops every box when the window has room for none", async () => {
     const { AD_SIZES, adFits } = await loadAds();
     for (const size of AD_SIZES) {
-      expect(adFits(size, 568, 280, { landscape: true })).toBe(false);
-      expect(adFits(size, 360, 480)).toBe(false);
+      expect(adFits(size, { width: 568, height: 280, landscape: true })).toBe(false);
+      expect(adFits(size, { width: 360, height: 480 })).toBe(false);
     }
   });
 
   it("drops a box wider than the window", async () => {
     const { AD_SIZES, adFits } = await loadAds();
     const [tall, middle] = AD_SIZES;
-    expect(adFits(middle, 318, 800)).toBe(false);
-    expect(adFits(tall, 318, 800)).toBe(true);
+    expect(adFits(middle, { width: 318, height: 800 })).toBe(false);
+    expect(adFits(tall, { width: 318, height: 800 })).toBe(true);
   });
 
   it("keeps any box beside the game, where the window always gives the biggest", async () => {
     const { AD_SIZES, adFits } = await loadAds();
-    for (const size of AD_SIZES) expect(adFits(size, 1000, 400, { side: true, landscape: true })).toBe(true);
+    for (const size of AD_SIZES) expect(adFits(size, { width: 1000, height: 400, side: true, landscape: true })).toBe(true);
   });
 });
 
@@ -273,6 +283,28 @@ describe("loadForBuyer", () => {
     added[1].dispatch("load");
     await tick();
     expect(classes.has("ad-free")).toBe(true);
+  });
+
+  it("leaves the box hidden, with no unhandled error, when the check itself fails", async () => {
+    storage["ihtfy-ad-free"] = "x.y.z";
+    const classes = new Set(["ad-free"]);
+    document.documentElement = { classList: { remove: (name) => classes.delete(name) } };
+    window.ihtfyAds.adFree = () => Promise.reject(new Error("no cookies in this frame"));
+    const unhandled = [];
+    const onUnhandled = (reason) => unhandled.push(reason);
+    process.on("unhandledRejection", onUnhandled);
+    const { loadForBuyer, showAd } = await loadAds();
+    loadForBuyer();
+    added[0].dispatch("error");
+    await tick();
+    const a = box();
+    showAd(a, "a");
+    added[1].dispatch("load");
+    await tick();
+    process.off("unhandledRejection", onUnhandled);
+    expect(unhandled).toEqual([]);
+    expect(classes.has("ad-free")).toBe(true);
+    expect(shown).toEqual([[a, "a"]]);
   });
 
   it("still starts when the cookie cannot be read", async () => {

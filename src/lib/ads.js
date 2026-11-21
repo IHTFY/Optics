@@ -16,8 +16,11 @@ export const AD_SIZES = [
   { name: "320x50", width: 320, height: 50 },
 ];
 
-/** Space the ad's aside takes besides the box: Privacy link, label, and the 50px clearances. */
+/** Space the ad's aside takes besides the box: Privacy link, label, the 50px clearances, and AD_PAD under the box. */
 export const AD_CHROME = 88;
+
+/** The padding under the box. A phone's bottom safe area (`--safe-bottom` in app.css) replaces it when larger. */
+export const AD_PAD = 12;
 
 /** The least height the board, cards, and Next round button need to stay readable. */
 export const MIN_GAME_HEIGHT = 450;
@@ -39,15 +42,16 @@ export const SIDE_LAYOUT = "(min-aspect-ratio: 5/4) and (min-width: 1000px) and 
 export const LANDSCAPE_LAYOUT = "(min-aspect-ratio: 5/4)";
 
 /**
- * Whether `size` has room in a viewport `width` × `height` px: no wider than the page, and the game keeps its least height above it.
- * Beside the game, the full height is the game's, and the biggest box fits the least window that layout has.
+ * Whether `size` has room in a viewport: no wider than the page, and the game keeps its least height above it.
+ * `inset` is the bottom safe area in px. Beside the game, the full height is the game's, and the biggest box fits the least window that layout has.
  */
-export const adFits = (size, width, height, { side = false, landscape = false } = {}) =>
+export const adFits = (size, { width, height, side = false, landscape = false, inset = 0 }) =>
   side ||
-  (width >= size.width && height - AD_CHROME - size.height >= (landscape ? MIN_LANDSCAPE_GAME_HEIGHT : MIN_GAME_HEIGHT));
+  (width >= size.width &&
+    height - AD_CHROME - Math.max(0, inset - AD_PAD) - size.height >= (landscape ? MIN_LANDSCAPE_GAME_HEIGHT : MIN_GAME_HEIGHT));
 
 /** The tallest box with room in the viewport, or null when none has: that results screen carries no ad. */
-export const adSizeFor = (width, height, layout) => AD_SIZES.find((size) => adFits(size, width, height, layout)) ?? null;
+export const adSizeFor = (viewport) => AD_SIZES.find((size) => adFits(size, viewport)) ?? null;
 
 let loader = null;
 
@@ -69,10 +73,14 @@ const load = () =>
 let unchecked = false;
 
 /** Has the loader, now on the page, check the token; one it rejects gets the box back. */
-function checkToken() {
+async function checkToken() {
   if (!unchecked) return;
   unchecked = false;
-  return window.ihtfyAds.adFree().then((free) => free || document.documentElement.classList.remove("ad-free"));
+  try {
+    if (!(await window.ihtfyAds.adFree())) document.documentElement.classList.remove("ad-free");
+  } catch {
+    // A check that fails leaves the box hidden, as the head script set it.
+  }
 }
 
 /** Loads the loader now if this browser holds an ad-free token; the loader checks it. */
@@ -91,9 +99,7 @@ export function loadForBuyer() {
   if (!found) return;
   unchecked = true;
   // If this load fails, the token is checked when a later one succeeds (showAd).
-  load()
-    .then(checkToken)
-    .catch(() => {});
+  load().then(checkToken, () => {});
 }
 
 /** Fills `box` with an ad for the game over named `key`; offline or on failure it stays empty. */

@@ -1,6 +1,5 @@
 <script>
   import { onMount, tick } from "svelte";
-  import { MediaQuery } from "svelte/reactivity";
   import { flip } from "svelte/animate";
   import Card from "./components/Card.svelte";
   import Help from "./components/Help.svelte";
@@ -26,19 +25,23 @@
   let help = $state();
   let adBox = $state();
   let adShown = $state(false);
-  let viewportWidth = $state(0);
-  let viewportHeight = $state(0);
-  const side = new MediaQuery(SIDE_LAYOUT);
-  const landscape = new MediaQuery(LANDSCAPE_LAYOUT);
-  const layout = $derived({ side: side.current, landscape: landscape.current });
+  // The window's size and layout, read together on each resize, so a box is never picked from a half-updated pair.
+  const measure = () => ({
+    width: innerWidth,
+    height: innerHeight,
+    side: matchMedia(SIDE_LAYOUT).matches,
+    landscape: matchMedia(LANDSCAPE_LAYOUT).matches,
+    inset: parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--safe-bottom")) || 0,
+  });
+  let viewport = $state.raw(measure());
   // The box keeps the size it was given for the whole results screen, so a turn of the phone never swaps it for an empty one.
   let adSize = $state(null);
-  const adFit = $derived(adSize && adFits(adSize, viewportWidth, viewportHeight, layout));
+  const adFit = $derived(adSize && adFits(adSize, viewport));
   $effect.pre(() => {
     adShown = showsAd(game.phase, adShown);
     if (!adShown) adSize = null;
     // A window with room for no box gets none; if a turn of the phone makes room during the results, the box comes then.
-    else if (game.phase === "reveal") adSize ??= adSizeFor(viewportWidth, viewportHeight, layout);
+    else if (game.phase === "reveal") adSize ??= adSizeFor(viewport);
   });
 
   // One ad per challenge: the box is new each reveal, and the key names the line.
@@ -287,7 +290,7 @@
   const verdict = (card) => (game.result ? (game.badIds.has(card.id) ? "bad" : "good") : null);
 </script>
 
-<svelte:window onkeydown={onKeydown} bind:innerWidth={viewportWidth} bind:innerHeight={viewportHeight} />
+<svelte:window onkeydown={onKeydown} onresize={() => (viewport = measure())} />
 
 <div class="page">
 <main class="app" class:dragging={drag} class:collecting class:reveal={adShown}>
@@ -459,7 +462,7 @@
     flex: none;
     display: grid;
     justify-items: center;
-    padding: 8px 0 max(12px, env(safe-area-inset-bottom));
+    padding: 8px 0 max(12px, var(--safe-bottom));
     color: var(--muted);
     font-size: 0.75rem;
     line-height: 16px;

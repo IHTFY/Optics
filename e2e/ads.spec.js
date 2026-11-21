@@ -363,3 +363,41 @@ test("a turn of the phone that makes room during the results brings the box, wit
   await expect(page.locator(".ad")).toBeVisible();
   expect(await page.evaluate(() => window.__shown.length)).toBe(1);
 });
+
+test("a resize that changes width, height, and layout at once picks the box for the window it ends in", async ({ page }) => {
+  await stubLoader(page);
+  await page.setViewportSize({ width: 318, height: 640 });
+  await page.goto("/");
+  await expect(page.locator(".deck .slot")).toHaveCount(1);
+  await page.evaluate(HELPERS);
+  await page.evaluate(() => window.__reveal());
+  await expect(page.locator(".primary")).toBeVisible();
+  await expect(page.locator(".ad")).toHaveCount(0);
+
+  // The old width with the new height would take no box, and the new width with the old height a 320x100 one.
+  await page.setViewportSize({ width: 640, height: 412 });
+  await expect(page.locator(".ad-box")).toHaveAttribute("data-ad-size", "320x50");
+  await expect(page.locator(".ad")).toBeVisible();
+});
+
+test("a bottom safe area deeper than the box's padding counts against the room for the box", async ({ page, browserName }) => {
+  test.skip(browserName !== "chromium", "safe-area insets are set through the Chromium debugging protocol");
+  await stubLoader(page);
+  await page.setViewportSize({ width: 390, height: 800 });
+  const client = await page.context().newCDPSession(page);
+  await client.send("Emulation.setSafeAreaInsetsOverride", { insets: { bottom: 34 } });
+  await page.goto("/");
+  await expect(page.locator(".deck .slot")).toHaveCount(1);
+  await page.evaluate(HELPERS);
+  await page.evaluate(() => window.__reveal());
+  // 800 px takes the 300x250 box (the SCREENS test at 412×800); 34 px of safe area leaves the game too little above it.
+  await expect(page.locator(".ad-box")).toHaveAttribute("data-ad-size", "320x100");
+  await expect(page.locator(".primary")).toBeVisible();
+  await page.waitForTimeout(1200);
+  const [app, pad] = await page.evaluate(() => [
+    document.querySelector(".app").getBoundingClientRect().height,
+    getComputedStyle(document.querySelector(".ad")).paddingBottom,
+  ]);
+  expect(pad).toBe("34px");
+  expect(app).toBeGreaterThanOrEqual(450);
+});
