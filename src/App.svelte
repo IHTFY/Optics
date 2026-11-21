@@ -392,7 +392,15 @@
         {/if}
         <button class="primary" disabled={collecting} onclick={nextRound}>Next round</button>
       {:else}
-        <button class="challenge" disabled={!game.canChallenge} onclick={() => game.challenge()}>
+        <button
+          class="challenge"
+          disabled={!game.canChallenge}
+          onclick={(e) => {
+            // The reveal removes this button. Removing a focused element makes the browser lay out the half-built reveal to move focus, so let go of focus first.
+            e.currentTarget.blur();
+            game.challenge();
+          }}
+        >
           Challenge
         </button>
       {/if}
@@ -599,6 +607,8 @@
     height: 100%;
     aspect-ratio: 5 / 8;
     border-radius: 7%;
+    /* A slot gains and loses a transform whenever a move animation starts or stops, and each such change lays out the whole card again. A constant one that moves nothing avoids that. */
+    translate: 0;
   }
 
   .slot:has(:global(.knocked)) {
