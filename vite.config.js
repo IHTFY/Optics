@@ -2,11 +2,15 @@ import { defineConfig } from "vite";
 import { svelte } from "@sveltejs/vite-plugin-svelte";
 import { VitePWA } from "vite-plugin-pwa";
 
-const icons = [192, 512].map((size) => ({
-  src: `/images/icons/icon-${size}x${size}.png`,
-  sizes: `${size}x${size}`,
-  type: "image/png",
-}));
+const icons = [
+  ...[192, 512].map((size) => ({
+    src: `/images/icons/icon-${size}x${size}.png`,
+    sizes: `${size}x${size}`,
+    type: "image/png",
+  })),
+  // Made by scripts/maskable-icon.mjs: the art inside the safe zone on a full background.
+  { src: "/images/icons/icon-maskable-512x512.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
+];
 
 export default defineConfig({
   plugins: [

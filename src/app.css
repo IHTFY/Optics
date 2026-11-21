@@ -7,7 +7,8 @@
   --red-bright: #ef4548;
   --red-deep: #9d2028;
   --red-glow: #e5383b40;
-  --brand: var(--red-bright);
+  /* Text in the brand red: lighter than --red-bright, to reach 4.5:1 contrast on --bg and --panel. */
+  --brand: #f26466;
   --accent: #ff9f1c;
   --good: #2fbf71;
   --bad: var(--red);
