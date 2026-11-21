@@ -48,17 +48,21 @@ for (const [rootFont, least] of [
     await page.waitForTimeout(1200);
     const cards = await page.locator(".line .slot").evaluateAll((slots) =>
       slots.map((slot) => {
-        const rect = (el) => {
-          const { left, right, top, bottom, height } = el.getBoundingClientRect();
-          return { left, right, top, bottom, height };
+        // The box of an element's content, which is wider than the element itself when the text overflows it.
+        const content = (el) => {
+          const range = document.createRange();
+          range.selectNodeContents(el);
+          const { left, right, top } = range.getBoundingClientRect();
+          return { left, right, top };
         };
+        const { left, right, top, height } = slot.getBoundingClientRect();
         const size = (q) => parseFloat(getComputedStyle(slot.querySelector(q)).fontSize);
         return {
-          card: rect(slot),
-          stats: rect(slot.querySelector(".stats")),
+          card: { left, right, top, height },
+          stats: slot.querySelector(".stats").getBoundingClientRect().height,
           main: size(".main"),
           others: size(".others"),
-          texts: [slot.querySelector(".main"), ...slot.querySelectorAll(".others span")].map(rect),
+          texts: [slot.querySelector(".main"), ...slot.querySelectorAll(".others span")].map(content),
         };
       }),
     );
@@ -72,7 +76,7 @@ for (const [rootFont, least] of [
         expect(text.top).toBeGreaterThanOrEqual(card.top);
       }
       // The numbers never take over the card: most of the art stays in view.
-      expect(stats.height).toBeLessThanOrEqual(card.height * 0.6);
+      expect(stats).toBeLessThanOrEqual(card.height * 0.6);
     }
   });
 }
