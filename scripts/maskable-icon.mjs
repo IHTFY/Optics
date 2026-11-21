@@ -7,9 +7,10 @@ import { chromium } from "@playwright/test";
 const SIZE = 512;
 // The game's background (`--bg` in src/app.css, and the manifest's background_color).
 const BACKGROUND = "#202125";
-// Any mask keeps a centered circle of 40% of the icon's width as radius. The art's farthest point stays
-// at 36%, so its tips don't touch the edge of a round icon.
-const ART_RADIUS = 0.36;
+// Android shows a maskable icon as an adaptive icon, whose mask is only guaranteed to keep a centered
+// circle of 33 of 108 units (about 30.6% of the width) as radius, tighter than the W3C 40% safe zone. The
+// art's farthest point stays at 30%, so the eye's tips aren't cut off.
+const ART_RADIUS = 0.3;
 
 const art = `data:image/png;base64,${(await readFile(new URL("../eyeball.png", import.meta.url))).toString("base64")}`;
 
