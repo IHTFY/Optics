@@ -131,8 +131,9 @@
     text-align: center;
   }
 
+  /* Both sizes follow the card but never go under a readable size, which follows the reader's own font size as far as the card has room. */
   .main {
-    font-size: 17cqi;
+    font-size: max(17cqi, min(1rem, 24cqi));
     font-weight: 700;
     line-height: 1.1;
     display: flex;
@@ -148,10 +149,11 @@
 
   .others {
     display: flex;
+    flex-wrap: wrap;
     justify-content: center;
-    gap: 4cqi;
+    gap: 1cqi 4cqi;
     margin-top: 2cqi;
-    font-size: 7cqi;
+    font-size: max(7cqi, min(0.75rem, 13cqi));
     white-space: nowrap;
     opacity: 0.85;
   }
