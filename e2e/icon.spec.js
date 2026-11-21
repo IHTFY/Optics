@@ -1,7 +1,8 @@
 import { expect, test } from "@playwright/test";
 
-// A phone cuts a maskable icon to its own shape and promises to keep only a centered circle whose radius is
-// 40% of the icon's width.
+// A phone cuts a maskable icon to its own shape. The W3C safe zone is a centered circle of 40% of the icon's
+// width as radius, but Android shows a maskable icon as an adaptive icon, whose mask is only guaranteed to
+// keep a circle of 33 of 108 units, about 30.6% of the width.
 test("the maskable icon fills the square and keeps its art in the safe zone", async ({ page }) => {
   await page.goto("/");
   const icon = await page.evaluate(async () => {
@@ -28,6 +29,6 @@ test("the maskable icon fills the square and keeps its art in the safe zone", as
 
   expect(icon).toMatchObject({ width: 512, height: 512, background: [0x20, 0x21, 0x25, 255], transparent: 0 });
   // The art is there, and all of it is inside the circle.
-  expect(icon.reach).toBeGreaterThan(0.3 * 512);
-  expect(icon.reach).toBeLessThanOrEqual(0.4 * 512);
+  expect(icon.reach).toBeGreaterThan(0.25 * 512);
+  expect(icon.reach).toBeLessThanOrEqual((33 / 108) * 512);
 });
