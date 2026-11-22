@@ -215,18 +215,10 @@
     drag.y = e.clientY;
   }
 
-  function dragFrame() {
-    if (!drag) return;
-    const line = lineEl.getBoundingClientRect();
+  // Move the pending card to the slot under the dragged one, or back to the deck.
+  function followDrag(line) {
     const margin = line.height * 0.35;
-    const overLine = drag.y > line.top - margin && drag.y < line.bottom + margin;
-
-    if (overLine) {
-      // Scroll the line when dragging near its edges.
-      const edge = Math.min(64, line.width / 5);
-      if (drag.x < line.left + edge) lineEl.scrollLeft -= ((line.left + edge - drag.x) / edge) * 14;
-      else if (drag.x > line.right - edge) lineEl.scrollLeft += ((drag.x - line.right + edge) / edge) * 14;
-
+    if (drag.y > line.top - margin && drag.y < line.bottom + margin) {
       const center = drag.x - drag.offsetX + drag.width / 2;
       const slot = slotNear(center);
       if (slot !== game.slot) game.moveTo(slot);
@@ -235,6 +227,22 @@
       const overDeck =
         drag.x > deck.left - 20 && drag.x < deck.right + 20 && drag.y > deck.top - 20 && drag.y < deck.bottom + 20;
       if (overDeck && game.slot !== null) game.moveTo(null);
+    }
+  }
+
+  function dragFrame() {
+    if (!drag) return;
+    // After release the drag only glides into place: no more scrolling or slot changes.
+    if (press) {
+      const line = lineEl.getBoundingClientRect();
+      const margin = line.height * 0.35;
+      if (drag.y > line.top - margin && drag.y < line.bottom + margin) {
+        // Scroll the line when dragging near its edges.
+        const edge = Math.min(64, line.width / 5);
+        if (drag.x < line.left + edge) lineEl.scrollLeft -= ((line.left + edge - drag.x) / edge) * 14;
+        else if (drag.x > line.right - edge) lineEl.scrollLeft += ((drag.x - line.right + edge) / edge) * 14;
+      }
+      followDrag(line);
     }
     drag.tilt *= 0.9;
     frame = requestAnimationFrame(dragFrame);
@@ -250,6 +258,8 @@
     setTimeout(() => (suppressClick = false));
     if (!drag) return;
     const released = drag;
+    // Settle the slot for the final position before measuring where the glide ends.
+    followDrag(lineEl.getBoundingClientRect());
 
     // Glide the ghost into the pending card's spot, then drop it.
     const ghost = ghostEl;
