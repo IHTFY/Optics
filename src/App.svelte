@@ -22,6 +22,8 @@
   let drag = $state(null);
   // The glide of a dropped card, while it runs.
   let settling = null;
+  // True while the glide runs: the gliding card takes presses so it can be grabbed where it is.
+  let gliding = $state(false);
   let frame = 0;
   let suppressClick = false;
 
@@ -181,22 +183,30 @@
 
   function onPointerDown(e) {
     if (game.phase !== "play" || e.button > 0 || press) return;
+    // Measure before the glide is cancelled: the gliding card's bounds include its glide so far.
+    const rect = e.currentTarget.getBoundingClientRect();
+    const held = drag && e.currentTarget === ghostEl ? drag : null;
     // A drag with no press is still gliding into place: finish it so this press starts its own drag.
     if (drag) {
       settling?.cancel();
       cancelAnimationFrame(frame);
+      gliding = false;
       drag = null;
     }
-    const rect = e.currentTarget.getBoundingClientRect();
+    // A tilted card's bounds are wider than the card: place it by its center.
+    const width = held ? held.width : rect.width;
+    const height = held ? held.height : rect.height;
     press = {
       id: e.pointerId,
       x0: e.clientX,
       y0: e.clientY,
-      offsetX: e.clientX - rect.left,
-      offsetY: e.clientY - rect.top,
-      width: rect.width,
-      height: rect.height,
+      offsetX: e.clientX - (rect.left + rect.width / 2) + width / 2,
+      offsetY: e.clientY - (rect.top + rect.height / 2) + height / 2,
+      width,
+      height,
     };
+    // The gliding card has no slot under it to show: hold it still where it was pressed until the pointer moves.
+    if (held) drag = { ...press, card: held.card, x: e.clientX, y: e.clientY, tilt: held.tilt, frozen: true };
     window.addEventListener("pointermove", onPointerMove);
     window.addEventListener("pointerup", onPointerUp);
     window.addEventListener("pointercancel", onPointerUp);
@@ -204,7 +214,7 @@
 
   function onPointerMove(e) {
     if (!press || e.pointerId !== press.id) return;
-    if (!drag) {
+    if (!drag || drag.frozen) {
       if (Math.hypot(e.clientX - press.x0, e.clientY - press.y0) < 6) return;
       drag = { ...press, card: game.pending, x: e.clientX, y: e.clientY, tilt: 0 };
       frame = requestAnimationFrame(dragFrame);
@@ -258,10 +268,16 @@
     setTimeout(() => (suppressClick = false));
     if (!drag) return;
     const released = drag;
-    drag.x = e.clientX;
-    drag.y = e.clientY;
-    // Settle the slot for the final position before measuring where the glide ends.
-    followDrag(lineEl.getBoundingClientRect());
+    // A press on the gliding card that never moved glides on from where it was held to the slot it was heading for.
+    if (!drag.frozen) {
+      drag.x = e.clientX;
+      drag.y = e.clientY;
+      // Settle the slot for the final position before measuring where the glide ends.
+      followDrag(lineEl.getBoundingClientRect());
+    } else {
+      // Straighten the held card's tilt as it glides on.
+      frame = requestAnimationFrame(dragFrame);
+    }
 
     // Glide the ghost into the pending card's spot, then drop it.
     const ghost = ghostEl;
@@ -279,9 +295,13 @@
         { duration: 180, easing: "cubic-bezier(0.2, 0.8, 0.2, 1)", fill: "forwards" }
       );
       settling = glide;
+      gliding = true;
       // Cancelling the glide rejects this wait; the next press has already ended the drag.
       await glide.finished.catch(() => {});
-      if (settling === glide) settling = null;
+      if (settling === glide) {
+        settling = null;
+        gliding = false;
+      }
     }
     if (drag === released) drag = null;
   }
@@ -436,9 +456,12 @@
   <Help bind:this={help} color={game.target} />
 
   {#if drag}
+    <!-- svelte-ignore a11y_no_static_element_interactions -->
     <div
       class="drag-ghost"
+      class:gliding
       bind:this={ghostEl}
+      onpointerdown={gliding ? onPointerDown : undefined}
       style:left="{drag.x - drag.offsetX}px"
       style:top="{drag.y - drag.offsetY}px"
       style:width="{drag.width}px"
@@ -809,6 +832,11 @@
     position: fixed;
     z-index: 10;
     pointer-events: none;
+  }
+
+  .drag-ghost.gliding {
+    pointer-events: auto;
+    touch-action: none;
   }
 
   @media (prefers-reduced-motion: reduce) {
