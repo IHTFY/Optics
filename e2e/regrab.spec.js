@@ -91,9 +91,13 @@ test("grabbing the gliding card where it is, away from its slot, starts a drag f
   // Let go as low as the line still takes the card, so the glide back to the slot is long.
   await dropInLine(page, line.height * 0.8);
 
-  // Hold the glide where it is so the card stays put under the press.
+  // Hold the glide near its start so the card stays put under the press, well below its slot.
   const ghost = page.locator(".drag-ghost");
-  await ghost.evaluate((el) => el.getAnimations()[0].pause());
+  await ghost.evaluate((el) => {
+    const glide = el.getAnimations()[0];
+    glide.pause();
+    glide.currentTime = 50;
+  });
   const pending = page.locator(".line .slot.is-pending");
   let slot;
   await expect(async () => {
@@ -109,6 +113,12 @@ test("grabbing the gliding card where it is, away from its slot, starts a drag f
   expect(grab.y).toBeGreaterThan(glideBox.y + 40);
   await page.mouse.move(grab.x, grab.y);
   await page.mouse.down();
+  // Before the pointer moves, the card stays where it was pressed instead of jumping to its slot.
+  await page.waitForTimeout(100);
+  await expect(ghost).toHaveCount(1);
+  const pressed = await ghost.boundingBox();
+  expect(Math.abs(pressed.x - glideBox.x)).toBeLessThan(2);
+  expect(Math.abs(pressed.y - glideBox.y)).toBeLessThan(2);
   await page.mouse.move(grab.x + 15, grab.y - 5, { steps: 3 });
   await page.mouse.move(grab.x + 30, grab.y - 10, { steps: 3 });
 

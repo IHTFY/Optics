@@ -185,6 +185,7 @@
     if (game.phase !== "play" || e.button > 0 || press) return;
     // Measure before the glide is cancelled: the gliding card's bounds include its glide so far.
     const rect = e.currentTarget.getBoundingClientRect();
+    const held = drag && e.currentTarget === ghostEl ? drag : null;
     // A drag with no press is still gliding into place: finish it so this press starts its own drag.
     if (drag) {
       settling?.cancel();
@@ -192,15 +193,23 @@
       gliding = false;
       drag = null;
     }
+    // A tilted card's bounds are wider than the card: place it by its center.
+    const width = held ? held.width : rect.width;
+    const height = held ? held.height : rect.height;
     press = {
       id: e.pointerId,
       x0: e.clientX,
       y0: e.clientY,
-      offsetX: e.clientX - rect.left,
-      offsetY: e.clientY - rect.top,
-      width: rect.width,
-      height: rect.height,
+      offsetX: e.clientX - (rect.left + rect.width / 2) + width / 2,
+      offsetY: e.clientY - (rect.top + rect.height / 2) + height / 2,
+      width,
+      height,
     };
+    // The gliding card has no slot under it to show: hold it where it was pressed.
+    if (held) {
+      drag = { ...press, card: game.pending, x: e.clientX, y: e.clientY, tilt: 0 };
+      frame = requestAnimationFrame(dragFrame);
+    }
     window.addEventListener("pointermove", onPointerMove);
     window.addEventListener("pointerup", onPointerUp);
     window.addEventListener("pointercancel", onPointerUp);
@@ -822,7 +831,10 @@
     pointer-events: none;
   }
 
-  .drag-ghost.gliding { pointer-events: auto; }
+  .drag-ghost.gliding {
+    pointer-events: auto;
+    touch-action: none;
+  }
 
   @media (prefers-reduced-motion: reduce) {
     button { transition: none; }
