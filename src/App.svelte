@@ -20,6 +20,9 @@
   // Pointer that went down on the pending card; becomes a drag once it moves.
   let press = null;
   let drag = $state(null);
+  // The glide of a dropped card, while it runs.
+  let settling = null;
+  let frame = 0;
   let suppressClick = false;
 
   let help = $state();
@@ -178,6 +181,12 @@
 
   function onPointerDown(e) {
     if (game.phase !== "play" || e.button > 0 || press) return;
+    // A drag with no press is still gliding into place: finish it so this press starts its own drag.
+    if (drag) {
+      settling?.cancel();
+      cancelAnimationFrame(frame);
+      drag = null;
+    }
     const rect = e.currentTarget.getBoundingClientRect();
     press = {
       id: e.pointerId,
@@ -198,7 +207,7 @@
     if (!drag) {
       if (Math.hypot(e.clientX - press.x0, e.clientY - press.y0) < 6) return;
       drag = { ...press, card: game.pending, x: e.clientX, y: e.clientY, tilt: 0 };
-      requestAnimationFrame(dragFrame);
+      frame = requestAnimationFrame(dragFrame);
     }
     const dx = e.clientX - drag.x;
     drag.tilt = Math.max(-10, Math.min(10, drag.tilt * 0.7 + dx * 0.6));
@@ -228,7 +237,7 @@
       if (overDeck && game.slot !== null) game.moveTo(null);
     }
     drag.tilt *= 0.9;
-    requestAnimationFrame(dragFrame);
+    frame = requestAnimationFrame(dragFrame);
   }
 
   async function onPointerUp(e) {
@@ -249,13 +258,17 @@
     if (ghost && target && ms(1)) {
       const from = ghost.getBoundingClientRect();
       const to = target.getBoundingClientRect();
-      await ghost.animate(
+      const glide = ghost.animate(
         [
           { transform: "translate(0, 0)" },
           { transform: `translate(${to.left - from.left}px, ${to.top - from.top}px)` },
         ],
         { duration: 180, easing: "cubic-bezier(0.2, 0.8, 0.2, 1)", fill: "forwards" }
-      ).finished;
+      );
+      settling = glide;
+      // Cancelling the glide rejects this wait; the next press has already ended the drag.
+      await glide.finished.catch(() => {});
+      if (settling === glide) settling = null;
     }
     if (drag === released) drag = null;
   }
