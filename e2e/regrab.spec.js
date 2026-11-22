@@ -141,6 +141,61 @@ test("grabbing the gliding card where it is, away from its slot, starts a drag f
   await expect(ghost).toHaveCount(0);
 });
 
+test("holding the gliding card still near the edge of a long line keeps the line and slot, and letting go glides it on", async ({ page, baseURL }) => {
+  await page.setViewportSize({ width: 360, height: 640 });
+  await open(page, baseURL);
+  for (let i = 0; i < 6; i++) {
+    await page.evaluate(() => {
+      window.__game.moveTo(0);
+      window.__game.place();
+    });
+    await expect(page.locator(".deck .slot")).toHaveCount(1);
+  }
+  await expect
+    .poll(() => page.evaluate(() => document.querySelector(".line").scrollWidth - document.querySelector(".line").clientWidth))
+    .toBeGreaterThan(200);
+  // Scroll to the end, so a drag held near the line's left edge could scroll it back.
+  await page.evaluate(() => {
+    const line = document.querySelector(".line");
+    line.scrollLeft = line.scrollWidth;
+  });
+  const line = await page.locator(".line").boundingBox();
+  await dropInLine(page, line.height * 0.8);
+
+  const ghost = page.locator(".drag-ghost");
+  await ghost.evaluate((el) => {
+    const glide = el.getAnimations()[0];
+    glide.pause();
+    glide.currentTime = 50;
+  });
+  const scrollLeft = () => page.evaluate(() => document.querySelector(".line").scrollLeft);
+  const pendingIndex = () =>
+    page.evaluate(() => [...document.querySelectorAll(".line .slot")].findIndex((s) => s.classList.contains("is-pending")));
+  const glideBox = await ghost.boundingBox();
+  // The press sits within the line's scrolling edge, and the line can still scroll that way.
+  const grab = { x: glideBox.x + glideBox.width / 2, y: glideBox.y + glideBox.height - 20 };
+  expect(grab.x).toBeLessThan(line.x + 64);
+  const scrolled = await scrollLeft();
+  expect(scrolled).toBeGreaterThan(0);
+  const index = await pendingIndex();
+
+  await page.mouse.move(grab.x, grab.y);
+  await page.mouse.down();
+  await page.waitForTimeout(300);
+  expect(await scrollLeft()).toBe(scrolled);
+  expect(await pendingIndex()).toBe(index);
+  const held = await ghost.boundingBox();
+  expect(Math.abs(held.x - glideBox.x)).toBeLessThan(2);
+  expect(Math.abs(held.y - glideBox.y)).toBeLessThan(2);
+
+  // Letting go without moving glides the card on to its slot instead of snapping there.
+  await page.mouse.up();
+  await expect(ghost).toHaveCount(1);
+  expect(await ghost.evaluate((el) => el.getAnimations().length)).toBe(1);
+  await expect(ghost).toHaveCount(0);
+  expect(await pendingIndex()).toBe(index);
+});
+
 test("a card dropped near the edge of a long line stays in the slot it was released over", async ({ page, baseURL }) => {
   await page.setViewportSize({ width: 360, height: 640 });
   await open(page, baseURL);

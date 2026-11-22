@@ -267,16 +267,14 @@
     if (drag) suppressClick = true;
     setTimeout(() => (suppressClick = false));
     if (!drag) return;
-    // A press that never moved leaves the card in its slot.
-    if (drag.frozen) {
-      drag = null;
-      return;
-    }
     const released = drag;
-    drag.x = e.clientX;
-    drag.y = e.clientY;
-    // Settle the slot for the final position before measuring where the glide ends.
-    followDrag(lineEl.getBoundingClientRect());
+    // A press on the gliding card that never moved glides on from where it was held to the slot it was heading for.
+    if (!drag.frozen) {
+      drag.x = e.clientX;
+      drag.y = e.clientY;
+      // Settle the slot for the final position before measuring where the glide ends.
+      followDrag(lineEl.getBoundingClientRect());
+    }
 
     // Glide the ghost into the pending card's spot, then drop it.
     const ghost = ghostEl;
