@@ -205,11 +205,8 @@
       width,
       height,
     };
-    // The gliding card has no slot under it to show: hold it where it was pressed.
-    if (held) {
-      drag = { ...press, card: game.pending, x: e.clientX, y: e.clientY, tilt: 0 };
-      frame = requestAnimationFrame(dragFrame);
-    }
+    // The gliding card has no slot under it to show: hold it still where it was pressed until the pointer moves.
+    if (held) drag = { ...press, card: held.card, x: e.clientX, y: e.clientY, tilt: held.tilt, frozen: true };
     window.addEventListener("pointermove", onPointerMove);
     window.addEventListener("pointerup", onPointerUp);
     window.addEventListener("pointercancel", onPointerUp);
@@ -217,7 +214,7 @@
 
   function onPointerMove(e) {
     if (!press || e.pointerId !== press.id) return;
-    if (!drag) {
+    if (!drag || drag.frozen) {
       if (Math.hypot(e.clientX - press.x0, e.clientY - press.y0) < 6) return;
       drag = { ...press, card: game.pending, x: e.clientX, y: e.clientY, tilt: 0 };
       frame = requestAnimationFrame(dragFrame);
@@ -270,6 +267,11 @@
     if (drag) suppressClick = true;
     setTimeout(() => (suppressClick = false));
     if (!drag) return;
+    // A press that never moved leaves the card in its slot.
+    if (drag.frozen) {
+      drag = null;
+      return;
+    }
     const released = drag;
     drag.x = e.clientX;
     drag.y = e.clientY;

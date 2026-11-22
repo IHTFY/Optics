@@ -119,6 +119,8 @@ test("grabbing the gliding card where it is, away from its slot, starts a drag f
   const pressed = await ghost.boundingBox();
   expect(Math.abs(pressed.x - glideBox.x)).toBeLessThan(2);
   expect(Math.abs(pressed.y - glideBox.y)).toBeLessThan(2);
+  // Holding still neither scrolls the line nor moves the card to another slot.
+  expect(await pending.boundingBox()).toEqual(slot);
   await page.mouse.move(grab.x + 15, grab.y - 5, { steps: 3 });
   await page.mouse.move(grab.x + 30, grab.y - 10, { steps: 3 });
 
