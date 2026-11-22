@@ -258,13 +258,16 @@
     setTimeout(() => (suppressClick = false));
     if (!drag) return;
     const released = drag;
+    drag.x = e.clientX;
+    drag.y = e.clientY;
     // Settle the slot for the final position before measuring where the glide ends.
     followDrag(lineEl.getBoundingClientRect());
 
     // Glide the ghost into the pending card's spot, then drop it.
     const ghost = ghostEl;
     await tick();
-    const target = document.querySelector(".slot.is-pending");
+    // A slot the card just left stays in the page while it fades out: look only where the card is now.
+    const target = (game.slot === null ? deckEl : lineEl)?.querySelector(".slot.is-pending");
     if (ghost && target && ms(1)) {
       const from = ghost.getBoundingClientRect();
       const to = target.getBoundingClientRect();
