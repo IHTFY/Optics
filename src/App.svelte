@@ -20,6 +20,9 @@
   // Pointer that went down on the pending card; becomes a drag once it moves.
   let press = null;
   let drag = $state(null);
+  // The glide of a dropped card, while it runs.
+  let settling = null;
+  let frame = 0;
   let suppressClick = false;
 
   let help = $state();
@@ -178,6 +181,12 @@
 
   function onPointerDown(e) {
     if (game.phase !== "play" || e.button > 0 || press) return;
+    // A drag with no press is still gliding into place: finish it so this press starts its own drag.
+    if (drag) {
+      settling?.cancel();
+      cancelAnimationFrame(frame);
+      drag = null;
+    }
     const rect = e.currentTarget.getBoundingClientRect();
     press = {
       id: e.pointerId,
@@ -198,7 +207,7 @@
     if (!drag) {
       if (Math.hypot(e.clientX - press.x0, e.clientY - press.y0) < 6) return;
       drag = { ...press, card: game.pending, x: e.clientX, y: e.clientY, tilt: 0 };
-      requestAnimationFrame(dragFrame);
+      frame = requestAnimationFrame(dragFrame);
     }
     const dx = e.clientX - drag.x;
     drag.tilt = Math.max(-10, Math.min(10, drag.tilt * 0.7 + dx * 0.6));
@@ -206,18 +215,10 @@
     drag.y = e.clientY;
   }
 
-  function dragFrame() {
-    if (!drag) return;
-    const line = lineEl.getBoundingClientRect();
+  // Move the pending card to the slot under the dragged one, or back to the deck.
+  function followDrag(line) {
     const margin = line.height * 0.35;
-    const overLine = drag.y > line.top - margin && drag.y < line.bottom + margin;
-
-    if (overLine) {
-      // Scroll the line when dragging near its edges.
-      const edge = Math.min(64, line.width / 5);
-      if (drag.x < line.left + edge) lineEl.scrollLeft -= ((line.left + edge - drag.x) / edge) * 14;
-      else if (drag.x > line.right - edge) lineEl.scrollLeft += ((drag.x - line.right + edge) / edge) * 14;
-
+    if (drag.y > line.top - margin && drag.y < line.bottom + margin) {
       const center = drag.x - drag.offsetX + drag.width / 2;
       const slot = slotNear(center);
       if (slot !== game.slot) game.moveTo(slot);
@@ -227,8 +228,24 @@
         drag.x > deck.left - 20 && drag.x < deck.right + 20 && drag.y > deck.top - 20 && drag.y < deck.bottom + 20;
       if (overDeck && game.slot !== null) game.moveTo(null);
     }
+  }
+
+  function dragFrame() {
+    if (!drag) return;
+    // After release the drag only glides into place: no more scrolling or slot changes.
+    if (press) {
+      const line = lineEl.getBoundingClientRect();
+      const margin = line.height * 0.35;
+      if (drag.y > line.top - margin && drag.y < line.bottom + margin) {
+        // Scroll the line when dragging near its edges.
+        const edge = Math.min(64, line.width / 5);
+        if (drag.x < line.left + edge) lineEl.scrollLeft -= ((line.left + edge - drag.x) / edge) * 14;
+        else if (drag.x > line.right - edge) lineEl.scrollLeft += ((drag.x - line.right + edge) / edge) * 14;
+      }
+      followDrag(line);
+    }
     drag.tilt *= 0.9;
-    requestAnimationFrame(dragFrame);
+    frame = requestAnimationFrame(dragFrame);
   }
 
   async function onPointerUp(e) {
@@ -241,21 +258,30 @@
     setTimeout(() => (suppressClick = false));
     if (!drag) return;
     const released = drag;
+    drag.x = e.clientX;
+    drag.y = e.clientY;
+    // Settle the slot for the final position before measuring where the glide ends.
+    followDrag(lineEl.getBoundingClientRect());
 
     // Glide the ghost into the pending card's spot, then drop it.
     const ghost = ghostEl;
     await tick();
-    const target = document.querySelector(".slot.is-pending");
+    // A slot the card just left stays in the page while it fades out: look only where the card is now.
+    const target = (game.slot === null ? deckEl : lineEl)?.querySelector(".slot.is-pending");
     if (ghost && target && ms(1)) {
       const from = ghost.getBoundingClientRect();
       const to = target.getBoundingClientRect();
-      await ghost.animate(
+      const glide = ghost.animate(
         [
           { transform: "translate(0, 0)" },
           { transform: `translate(${to.left - from.left}px, ${to.top - from.top}px)` },
         ],
         { duration: 180, easing: "cubic-bezier(0.2, 0.8, 0.2, 1)", fill: "forwards" }
-      ).finished;
+      );
+      settling = glide;
+      // Cancelling the glide rejects this wait; the next press has already ended the drag.
+      await glide.finished.catch(() => {});
+      if (settling === glide) settling = null;
     }
     if (drag === released) drag = null;
   }
