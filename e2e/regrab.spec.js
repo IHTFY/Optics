@@ -172,9 +172,12 @@ test("holding the gliding card still near the edge of a long line keeps the line
   const pendingIndex = () =>
     page.evaluate(() => [...document.querySelectorAll(".line .slot")].findIndex((s) => s.classList.contains("is-pending")));
   const glideBox = await ghost.boundingBox();
-  // The press sits within the line's scrolling edge, and the line can still scroll that way.
-  const grab = { x: glideBox.x + glideBox.width / 2, y: glideBox.y + glideBox.height - 20 };
+  // The press sits on the card inside the line's scrolling edge (left and vertical reach), and the line can still scroll that way.
+  const reach = line.y + line.height * 1.35;
+  const grab = { x: glideBox.x + glideBox.width / 2, y: Math.min(glideBox.y + glideBox.height - 10, reach - 4) };
   expect(grab.x).toBeLessThan(line.x + 64);
+  expect(grab.y).toBeGreaterThan(Math.max(glideBox.y, line.y - line.height * 0.35));
+  expect(grab.y).toBeLessThan(reach);
   const scrolled = await scrollLeft();
   expect(scrolled).toBeGreaterThan(0);
   const index = await pendingIndex();

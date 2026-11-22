@@ -274,6 +274,9 @@
       drag.y = e.clientY;
       // Settle the slot for the final position before measuring where the glide ends.
       followDrag(lineEl.getBoundingClientRect());
+    } else {
+      // Straighten the held card's tilt as it glides on.
+      frame = requestAnimationFrame(dragFrame);
     }
 
     // Glide the ghost into the pending card's spot, then drop it.
