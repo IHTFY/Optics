@@ -86,3 +86,18 @@ test('reduced motion skips card collection', async ({ page }) => {
   await expect(page.locator('[data-round-collection]')).toHaveCount(0);
   await expect(page.locator('.line .slot')).toHaveCount(1);
 });
+
+test('only the blue arrow wears a paper rim, wide enough to show around it', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.locator('.deck .slot')).toHaveCount(1);
+  const rim = page.locator('.wedge .rim polygon').first();
+  for (const color of ['red', 'blue', 'yellow', 'cyan']) {
+    await page.evaluate((c) => { window.__game.target = c; }, color);
+    await expect
+      .poll(() => rim.evaluate((p) => getComputedStyle(p).stroke), { message: color })
+      .toBe(color === 'blue' ? 'rgb(251, 244, 232)' : 'rgba(0, 0, 0, 0)');
+    if (color === 'blue') {
+      expect(await rim.evaluate((p) => parseFloat(getComputedStyle(p).strokeWidth))).toBeGreaterThanOrEqual(3);
+    }
+  }
+});
