@@ -107,3 +107,38 @@ test("card art color shares are balanced and widely spread", async ({ page }) =>
   expect(colorsPresent.filter((k) => k >= 3).length / n).toBeGreaterThan(0.85);
   expect(Math.min(...colorsPresent)).toBeGreaterThanOrEqual(2);
 });
+
+// Each pattern on its own already makes a card worth judging: two or more colors, none covering it all.
+test("every card pattern draws several colors", async ({ page }) => {
+  test.setTimeout(90_000);
+  await page.goto("/");
+  const results = await page.evaluate(async () => {
+    const { CARD_WIDTH: W, CARD_HEIGHT: H } = await import("/src/lib/card.js");
+    const { PATTERNS, makePalette } = await import("/src/lib/art.js");
+    const { classify } = await import("/src/lib/quantize.js");
+    const { createRng } = await import("/src/lib/rng.js");
+    const { inkCss, COLORS } = await import("/src/lib/colors.js");
+    const canvas = document.createElement("canvas");
+    canvas.width = W;
+    canvas.height = H;
+    const ctx = canvas.getContext("2d", { willReadFrequently: true });
+    return PATTERNS.map(([pattern]) => {
+      const draws = [];
+      for (let s = 1; s <= 40; s++) {
+        ctx.fillStyle = inkCss("background");
+        ctx.fillRect(0, 0, W, H);
+        const rng = createRng(s * 7907 + 3);
+        pattern(ctx, rng, W, H, makePalette(rng));
+        const { counts } = classify(ctx.getImageData(0, 0, W, H).data);
+        draws.push(COLORS.map((c) => counts[c] / (W * H)));
+      }
+      return { name: pattern.name, draws };
+    });
+  });
+
+  for (const { name, draws } of results) {
+    const several = draws.filter((shares) => shares.filter((v) => v >= 0.01).length >= 2).length;
+    expect(several / draws.length, name).toBeGreaterThanOrEqual(0.9);
+    for (const shares of draws) expect(Math.max(...shares), name).toBeLessThan(0.98);
+  }
+});

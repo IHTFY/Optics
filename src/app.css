@@ -1,24 +1,24 @@
 :root {
-  --bg: #202125;
-  --panel: #2a2b31;
-  --text: #f4f2ee;
+  /* The dark print bed the cards lie on, and the darker panel of the help dialog. */
+  --bg: #181a1e;
+  --panel: #0e1011;
+  --text: #fbf4e8;
   --muted: #9a9ba3;
-  --red: #e5383b;
-  --red-bright: #ef4548;
-  --red-deep: #9d2028;
-  --red-glow: #e5383b40;
-  /* Text in the brand red: lighter than --red-bright, to reach 4.5:1 contrast on --bg and --panel. */
-  --brand: #f26466;
-  --accent: #ff9f1c;
+  /* The cream masthead and the red title printed on it. */
+  --masthead: #fdeacc;
+  /* Deeper than the cards' red, to reach 4.5:1 contrast on --masthead. */
+  --brand: #d0151e;
+  /* Dark text on cream and yellow. */
+  --ink: #2b2927;
+  --accent: #fcc803;
+  --on-accent: #1a1b0b;
   --good: #2fbf71;
-  --bad: var(--red);
-  --surface: #ffffff08;
+  --bad: #f31e28;
+  --surface: #ffffff06;
   --border: #ffffff22;
-  --card-paper: #f3efe6;
-  --stats-bg: #202125ed;
-  --on-accent: #1d1400;
-  --on-red: #fff;
-  --accent-glow: #ff9f1c33;
+  /* Card paper, the cream outlines around the line and the help dialog, and the revealed amounts. */
+  --card-paper: #fbf4e8;
+  --display: "Anton", Impact, "Arial Narrow Bold", sans-serif-condensed, sans-serif;
   /* Read from script too (App.svelte), to count the room the results ad has. */
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   color-scheme: dark;

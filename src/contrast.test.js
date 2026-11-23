@@ -18,14 +18,24 @@ const contrast = (a, b) => {
   return (light + 0.05) / (dark + 0.05);
 };
 
-describe("brand text color", () => {
+describe("text colors", () => {
   it("measures contrast as WCAG does", () => {
     expect(contrast("#ffffff", "#000000")).toBeCloseTo(21);
     expect(contrast("#777777", "#ffffff")).toBeCloseTo(4.48, 2);
   });
 
-  // The heading sits on the page, the help dialog's title on a panel; both are small text.
-  it.each(["bg", "panel"])("reaches 4.5:1 on --%s", (background) => {
-    expect(contrast(token("brand"), token(background))).toBeGreaterThanOrEqual(4.5);
+  // Each text color against every background it is printed on.
+  it.each([
+    ["brand", "masthead"],
+    ["ink", "masthead"],
+    ["text", "bg"],
+    ["text", "panel"],
+    ["muted", "bg"],
+    ["muted", "panel"],
+    ["on-accent", "accent"],
+    ["ink", "card-paper"],
+    ["accent", "panel"],
+  ])("--%s reaches 4.5:1 on --%s", (text, background) => {
+    expect(contrast(token(text), token(background))).toBeGreaterThanOrEqual(4.5);
   });
 });

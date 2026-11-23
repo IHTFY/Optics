@@ -12,11 +12,11 @@ export const INK = {
 
 // Display colors the snapped pixels are painted with.
 export const PALETTE = {
-  background: "#f3efe6",
-  red: "#e5383b",
-  blue: "#2851c8",
-  yellow: "#f7c318",
-  cyan: "#1fc6d6",
+  background: "#fbf4e8",
+  red: "#f31e28",
+  blue: "#0132ad",
+  yellow: "#fbc002",
+  cyan: "#03b7ce",
 };
 
 export const inkCss = (name) => `rgb(${INK[name].join(",")})`;

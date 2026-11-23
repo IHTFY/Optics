@@ -39,13 +39,16 @@
   <ol>
     <li>
       <svg viewBox="0 0 150 100" aria-hidden="true">
-        <polygon points="6,11 132,5 132,17 6,13" fill={fill} />
+        <rect x="6" y="8.5" width="126" height="5" fill={fill} />
         <polygon points="131,1 145,11 131,21" fill={fill} />
         {@render card(5, 30, 0.15)}
         {@render card(55, 30, 0.4)}
         {@render card(105, 30, 0.75)}
       </svg>
-      <p>Order the cards by the arrow's color, from least to most.</p>
+      <div>
+        <h3>Least to most</h3>
+        <p>Order the cards by the arrow's color, from least to most.</p>
+      </div>
     </li>
     <li>
       <svg viewBox="0 0 150 100" aria-hidden="true">
@@ -54,7 +57,10 @@
         {@render card(105, 30, 0.7)}
         <g class="float">{@render card(55, 20, 0.45, -8)}</g>
       </svg>
-      <p>Drag the new card into the line, or tap a spot. Then <b>Place</b>.</p>
+      <div>
+        <h3>Place</h3>
+        <p>Drag the new card into the line, or tap a spot. Then <b>Place</b>.</p>
+      </div>
     </li>
     <li>
       <svg viewBox="0 0 150 100" aria-hidden="true">
@@ -65,7 +71,10 @@
         {@render card(105, 36, 0.35, -5)}
         {@render cross(100, 30)}
       </svg>
-      <p><b>Challenge</b> to reveal the exact amounts. The arrow graphs them; each drop, marked <span class="x">✕</span>, is a pair in the wrong order.</p>
+      <div>
+        <h3>Challenge</h3>
+        <p><b>Challenge</b> to reveal the exact amounts. The arrow graphs them; each drop, marked <span class="x">✕</span>, is a pair in the wrong order.</p>
+      </div>
     </li>
   </ol>
 
@@ -87,9 +96,9 @@
   dialog {
     width: min(400px, calc(100vw - 32px));
     max-height: calc(100dvh - 32px);
-    padding: 20px 20px 18px;
-    border: 1px solid #ffffff14;
-    border-radius: 22px;
+    padding: 18px 20px 18px;
+    border: 3px solid var(--card-paper);
+    border-radius: 16px;
     background: var(--panel);
     color: var(--text);
     box-shadow: 0 24px 60px #000a;
@@ -100,47 +109,66 @@
     animation: open 260ms cubic-bezier(0.2, 0.9, 0.3, 1.2);
   }
 
+  /* The print bed, with printed rainbows in two corners in the card colors (a backdrop sees no page variables in older browsers). Opaque, so nothing behind needs blurring. */
   dialog::backdrop {
-    background: #0009;
-    backdrop-filter: blur(3px);
+    --arc: min(30vw, 30vh, 220px);
+    background:
+      radial-gradient(
+          circle at 100% 0,
+          #f31e28 0 calc(var(--arc) * 0.42),
+          #fbc002 0 calc(var(--arc) * 0.75),
+          #03b7ce 0 var(--arc),
+          transparent 0
+        ),
+      radial-gradient(
+          circle at 0 100%,
+          #f31e28 0 calc(var(--arc) * 0.42),
+          #fbc002 0 calc(var(--arc) * 0.75),
+          #03b7ce 0 var(--arc),
+          transparent 0
+        ),
+      #0e1011;
   }
 
   h2 {
-    margin: 0 44px 16px 0;
-    color: var(--brand);
-    font-size: 0.85rem;
+    margin: 0 92px 14px 0;
+    padding-bottom: 12px;
+    border-bottom: 3px solid var(--card-paper);
+    color: var(--text);
+    font-family: var(--display);
+    font-size: 1.9rem;
     font-weight: 400;
-    letter-spacing: 0.3em;
+    line-height: 1.1;
+    letter-spacing: 0.02em;
     text-transform: uppercase;
   }
 
   .close {
     position: absolute;
-    top: 10px;
-    right: 10px;
-    width: 36px;
+    top: 16px;
+    right: 18px;
+    width: 44px;
     height: 36px;
     display: grid;
     place-items: center;
     padding: 0;
-    border: none;
-    border-radius: 50%;
+    border: 2px solid var(--card-paper);
+    border-radius: 8px;
     background: transparent;
-    color: var(--muted);
+    color: var(--text);
     cursor: pointer;
   }
 
   .close:hover {
-    color: var(--text);
-    background: #ffffff10;
+    background: #ffffff14;
   }
 
   .close svg {
-    width: 20px;
-    height: 20px;
+    width: 18px;
+    height: 18px;
     fill: none;
     stroke: currentColor;
-    stroke-width: 2.4;
+    stroke-width: 2.6;
     stroke-linecap: round;
   }
 
@@ -149,45 +177,57 @@
     margin: 0;
     padding: 0;
     display: grid;
-    gap: 14px;
     counter-reset: step;
   }
 
   li {
     display: grid;
-    grid-template-columns: 112px 1fr;
+    grid-template-columns: 104px 1fr;
     align-items: center;
     gap: 14px;
+    padding: 12px 0;
     counter-increment: step;
   }
 
+  li + li {
+    border-top: 2px solid #fbf4e866;
+  }
+
   li svg {
-    width: 112px;
+    width: 104px;
     display: block;
-    padding: 6px;
-    border-radius: 14px;
-    background: var(--surface);
+  }
+
+  h3 {
+    display: flex;
+    align-items: center;
+    gap: 0.4em;
+    margin: 0 0 4px;
+    font-family: var(--display);
+    font-size: 1.3rem;
+    font-weight: 400;
+    line-height: 1.2;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+  }
+
+  h3::before {
+    content: counter(step);
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 1.3em;
+    height: 1.3em;
+    border-radius: 50%;
+    background: var(--accent);
+    color: var(--on-accent);
+    font-size: 0.9em;
   }
 
   p {
     margin: 0;
-    font-size: 0.95rem;
+    font-size: 0.92rem;
     line-height: 1.4;
-  }
-
-  p::before {
-    content: counter(step);
-    display: inline-grid;
-    place-items: center;
-    width: 1.4em;
-    height: 1.4em;
-    margin-right: 0.45em;
-    border-radius: 50%;
-    background: var(--accent);
-    color: var(--on-accent);
-    font-size: 0.8em;
-    font-weight: 700;
-    vertical-align: 0.1em;
   }
 
   b {
@@ -208,9 +248,9 @@
     display: none;
     flex-wrap: wrap;
     gap: 8px 14px;
-    margin-top: 16px;
+    margin-top: 4px;
     padding-top: 14px;
-    border-top: 1px solid #ffffff14;
+    border-top: 2px solid #fbf4e866;
     font-size: 0.8rem;
     color: var(--muted);
   }
@@ -222,22 +262,28 @@
   }
 
   .support {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
     margin: 14px 0 0;
-    text-align: center;
-    font-size: 0.8rem;
   }
 
   .support a {
-    color: var(--muted);
-  }
-
-  .support a + a {
-    margin-left: 16px;
+    padding: 8px 6px;
+    border: 2px solid var(--card-paper);
+    border-radius: 8px;
+    color: var(--text);
+    font-family: var(--display);
+    font-size: 1.05rem;
+    letter-spacing: 0.03em;
+    text-align: center;
+    text-decoration: none;
+    text-transform: uppercase;
   }
 
   .support a:hover,
   .support a:focus-visible {
-    color: var(--text);
+    background: #ffffff14;
   }
 
   kbd {

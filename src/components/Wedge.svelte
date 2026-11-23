@@ -5,7 +5,7 @@
   import { PALETTE } from "../lib/colors.js";
   import { ms } from "../lib/motion.js";
 
-  // Narrow on the left, wide on the right: less of the target color to more.
+  // A straight arrow in the target color, pointing from less of it to more.
   // Once revealed, it bends into a line graph of the amounts, one point above
   // each card, so every drop to the right is a pair in the wrong order.
   let { color, values = null, perfect = false, line = null, delay = 0 } = $props();
@@ -111,7 +111,8 @@
 
     const head = mix(flatHead, Math.max(12, flatHead * 0.6));
     const end = width - head;
-    const thickness = (x) => mix(2, 2.5) + (mix(flatHead * 0.87, head * 0.45) - mix(2, 2.5)) * Math.max(0, x / end);
+    // One thickness along the whole shaft, the head about 2.8 times as thick on the flat arrow and 3 times on the graph.
+    const shaft = mix(flatHead * 0.36, Math.max(4, flatHead * 0.2));
     const base = height - head / 2;
     const rise = Math.max(0, base - head / 2 + mix(0, Math.min(room, 140)));
     const y = (h) => base - h * rise;
@@ -130,14 +131,14 @@
     };
     const path = [[0, at(0)], ...points.filter(([x]) => x > 0 && x < end), [end, at(end)]];
 
-    const top = path.map(([x, py]) => `${x},${py - thickness(x) / 2}`);
-    const bottom = path.map(([x, py]) => `${x},${py + thickness(x) / 2}`).reverse();
+    const top = path.map(([x, py]) => `${x},${py - shaft / 2}`);
+    const bottom = path.map(([x, py]) => `${x},${py + shaft / 2}`).reverse();
     const segments = path.slice(1).map(([x, py], i) => ({
       x1: path[i][0],
       y1: path[i][1],
       x2: x,
       y2: py,
-      width: thickness(path[i][0]),
+      width: shaft,
     }));
     const tipY = at(end);
     // Follow the segment entering the head, including when it is clipped by scrolling.
