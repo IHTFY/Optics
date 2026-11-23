@@ -76,7 +76,8 @@ const pngs = await page.evaluate(
       let canvas = document.createElement("canvas");
       canvas.width = canvas.height = size * OVERSAMPLE;
       // The eye's tips are the ends of its width, so its reach from the center is half the width.
-      const scale = (OVERSAMPLE * (maskable ? (ART_RADIUS * size) / (w / 2) : (size * (1 - 2 * MARGIN)) / w));
+      const fit = maskable ? (ART_RADIUS * size) / (w / 2) : (size * (1 - 2 * MARGIN)) / w;
+      const scale = OVERSAMPLE * fit;
       const big = canvas.getContext("2d", { willReadFrequently: true });
       big.drawImage(image, (canvas.width - w * scale) / 2, (canvas.height - h * scale) / 2, w * scale, h * scale);
       cutRim(big, canvas.width);

@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { hexToRgb } from "./lib/colors.js";
+import { COLORS, PALETTE, hexToRgb } from "./lib/colors.js";
 
 const css = readFileSync(new URL("./app.css", import.meta.url), "utf8");
 const token = (name) => css.match(new RegExp(`--${name}: (#[0-9a-f]{6});`))[1];
@@ -37,5 +37,15 @@ describe("text colors", () => {
     ["accent", "panel"],
   ])("--%s reaches 4.5:1 on --%s", (text, background) => {
     expect(contrast(token(text), token(background))).toBeGreaterThanOrEqual(4.5);
+  });
+});
+
+// The arrow is the round's color cue (WCAG 1.4.11 asks 3:1 for graphics). Blue is too dark for the board,
+// so Wedge.svelte gives the blue arrow a paper rim; every other ink must stand out on its own.
+describe("arrow colors", () => {
+  it.each(COLORS)("the %s arrow reaches 3:1 on --bg", (color) => {
+    const edge = color === "blue" ? token("card-paper") : PALETTE[color];
+    expect(contrast(edge, token("bg"))).toBeGreaterThanOrEqual(3);
+    if (color === "blue") expect(contrast(PALETTE.blue, edge)).toBeGreaterThanOrEqual(3);
   });
 });

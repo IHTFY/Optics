@@ -343,20 +343,20 @@
   <header>
     <h1>Optics</h1>
     <div class="links">
-    <button class="icon" aria-label="How to play" onclick={() => help.open()}>
-      <svg viewBox="0 0 24 24" width="24" height="24">
-        <circle cx="12" cy="12" r="10.5" />
-        <path d="M9.2 9.3a2.9 2.9 0 1 1 3.9 2.7c-.7.3-1.1.9-1.1 1.6v.6" />
-        <circle class="dot" cx="12" cy="17.4" r="1.2" />
-      </svg>
-    </button>
-    <a class="icon" aria-label="GitHub" href="https://github.com/IHTFY/optics">
-      <svg viewBox="0 0 32 32" width="22" height="22" fill="currentColor">
-        <path
-          d="M16 0C7.2 0 0 7.2 0 16c0 7.1 4.6 13 11 15 .8 .14 1.1-.34 1.1-.76 0-.38-.02-1.6-.02-3-4 .74-5.1-.98-5.4-1.9-.18-.46-.96-1.9-1.6-2.3-.56-.3-1.4-1-.02-1.1 1.3-.02 2.2 1.2 2.5 1.6 1.4 2.4 3.7 1.7 4.7 1.3 .14-1 .56-1.7 1-2.1-3.6-.4-7.3-1.8-7.3-7.9 0-1.7 .62-3.2 1.6-4.3-.16-.4-.72-2 .16-4.2 0 0 1.3-.42 4.4 1.6 1.3-.36 2.6-.54 4-.54 1.4 0 2.7 .18 4 .54 3.1-2.1 4.4-1.6 4.4-1.6 .88 2.2 .32 3.8 .16 4.2 1 1.1 1.6 2.5 1.6 4.3 0 6.1-3.7 7.5-7.3 7.9 .58 .5 1.1 1.5 1.1 3 0 2.1-.02 3.9-.02 4.4 0 .42 .3 .92 1.1 .76A16 16 0 0 0 32 16c0-8.8-7.2-16-16-16z"
-        />
-      </svg>
-    </a>
+      <button class="icon" aria-label="How to play" onclick={() => help.open()}>
+        <svg viewBox="0 0 24 24" width="24" height="24">
+          <circle cx="12" cy="12" r="10.5" />
+          <path d="M9.2 9.3a2.9 2.9 0 1 1 3.9 2.7c-.7.3-1.1.9-1.1 1.6v.6" />
+          <circle class="dot" cx="12" cy="17.4" r="1.2" />
+        </svg>
+      </button>
+      <a class="icon" aria-label="GitHub" href="https://github.com/IHTFY/optics">
+        <svg viewBox="0 0 32 32" width="22" height="22" fill="currentColor">
+          <path
+            d="M16 0C7.2 0 0 7.2 0 16c0 7.1 4.6 13 11 15 .8 .14 1.1-.34 1.1-.76 0-.38-.02-1.6-.02-3-4 .74-5.1-.98-5.4-1.9-.18-.46-.96-1.9-1.6-2.3-.56-.3-1.4-1-.02-1.1 1.3-.02 2.2 1.2 2.5 1.6 1.4 2.4 3.7 1.7 4.7 1.3 .14-1 .56-1.7 1-2.1-3.6-.4-7.3-1.8-7.3-7.9 0-1.7 .62-3.2 1.6-4.3-.16-.4-.72-2 .16-4.2 0 0 1.3-.42 4.4 1.6 1.3-.36 2.6-.54 4-.54 1.4 0 2.7 .18 4 .54 3.1-2.1 4.4-1.6 4.4-1.6 .88 2.2 .32 3.8 .16 4.2 1 1.1 1.6 2.5 1.6 4.3 0 6.1-3.7 7.5-7.3 7.9 .58 .5 1.1 1.5 1.1 3 0 2.1-.02 3.9-.02 4.4 0 .42 .3 .92 1.1 .76A16 16 0 0 0 32 16c0-8.8-7.2-16-16-16z"
+          />
+        </svg>
+      </a>
     </div>
   </header>
 
@@ -912,6 +912,31 @@
 
     .line {
       max-height: min(100%, 420px + var(--pad-bottom));
+    }
+  }
+
+  /* A short landscape window, such as a phone on its side: the masthead tops the hand's column only, so the line keeps the window's full height. */
+  @media (min-aspect-ratio: 5 / 4) and (max-height: 499px) {
+    .app {
+      grid-template:
+        "header board" auto
+        "hand board" 1fr / auto minmax(0, 1fr);
+    }
+
+    header {
+      grid-template-columns: auto auto;
+      justify-content: space-between;
+      margin-right: 0;
+      padding-right: 4px;
+      border-bottom-right-radius: 14px;
+    }
+
+    h1 {
+      grid-column: 1;
+    }
+
+    .links {
+      grid-column: 2;
     }
   }
 </style>

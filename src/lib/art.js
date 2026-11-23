@@ -323,7 +323,7 @@ function sunburst(ctx, rng, w, h, pal) {
 }
 
 /** Fan of ray wedges around (cx, cy), optionally curved by `twist` radians. */
-function rays(ctx, cx, cy, bands, reps, twist, a, R, steps) {
+export function rays(ctx, cx, cy, bands, reps, twist, a, R, steps) {
   const total = bands.reduce((s, b) => s + b.wt, 0);
   const step = TAU / reps;
   for (let k = 0; k < reps; k++) {
@@ -337,7 +337,9 @@ function rays(ctx, cx, cy, bands, reps, twist, a, R, steps) {
           const aa = a + twist * t;
           ctx.lineTo(cx + R * t * Math.cos(aa), cy + R * t * Math.sin(aa));
         }
-        for (let j = steps; j >= 1; j--) {
+        // Round the outer end, so a wide band isn't cut off by a straight line across the card.
+        ctx.arc(cx, cy, R, a + twist, a + span + 0.01 + twist);
+        for (let j = steps - 1; j >= 1; j--) {
           const t = j / steps;
           const aa = a + span + 0.01 + twist * t;
           ctx.lineTo(cx + R * t * Math.cos(aa), cy + R * t * Math.sin(aa));

@@ -109,7 +109,7 @@
     animation: open 260ms cubic-bezier(0.2, 0.9, 0.3, 1.2);
   }
 
-  /* The print bed, with printed rainbows in two corners in the card colors (a backdrop sees no page variables in older browsers). Opaque, so nothing behind needs blurring. */
+  /* The print bed, with printed rainbows in two corners in the card colors (a backdrop sees no page variables in older browsers, so keep these in step with PALETTE). Opaque, so nothing behind needs blurring. */
   dialog::backdrop {
     --arc: min(30vw, 30vh, 220px);
     background:
