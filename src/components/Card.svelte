@@ -55,7 +55,7 @@
     overflow: hidden;
     background: var(--card-paper);
     box-shadow:
-      0 0 0 3cqi var(--card-paper),
+      0 0 0 4cqi var(--card-paper),
       0 4px 14px #0006;
     transition:
       transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1.3),
@@ -66,7 +66,7 @@
       opacity 300ms ease;
     outline: 3px solid transparent;
     /* Clear of the paper rim, so a verdict color never touches the art. */
-    outline-offset: calc(3cqi + 2px);
+    outline-offset: calc(4cqi + 2px);
     user-select: none;
     -webkit-user-select: none;
     -webkit-touch-callout: none;
@@ -83,14 +83,14 @@
     outline-color: var(--accent);
     transform: translateY(-3%);
     box-shadow:
-      0 0 0 3cqi var(--card-paper),
+      0 0 0 4cqi var(--card-paper),
       0 10px 24px #000a;
   }
 
   .ghost {
     transform: rotate(var(--tilt, 0deg)) scale(1.06);
     box-shadow:
-      0 0 0 3cqi var(--card-paper),
+      0 0 0 4cqi var(--card-paper),
       0 18px 36px #000c;
     outline-color: var(--accent);
     transition: none;
@@ -121,21 +121,19 @@
   .stats {
     position: absolute;
     inset: auto 0 0 0;
-    /* The face's rounded clip doesn't reliably clip backdrop-filter. */
-    border-radius: 0 0 7cqi 7cqi;
-    padding: 5cqi 4cqi 6cqi;
-    background: var(--stats-bg);
-    backdrop-filter: blur(4px);
-    color: var(--text);
+    padding: 4cqi 4cqi 5cqi;
+    background: var(--card-paper);
+    color: var(--ink);
     font-variant-numeric: tabular-nums;
     text-align: center;
   }
 
   /* Both sizes follow the card but never go under a readable size, which follows the reader's own font size as far as the card has room. */
   .main {
+    font-family: var(--display);
     font-size: max(17cqi, min(1rem, 24cqi));
-    font-weight: 700;
-    line-height: 1.1;
+    font-weight: 400;
+    line-height: 1.15;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -154,8 +152,8 @@
     gap: 1cqi 4cqi;
     margin-top: 2cqi;
     font-size: max(7cqi, min(0.75rem, 13cqi));
+    font-weight: 600;
     white-space: nowrap;
-    opacity: 0.85;
   }
 
   .others span {
@@ -169,7 +167,7 @@
     width: 5cqi;
     height: 5cqi;
     border-radius: 50%;
-    box-shadow: 0 0 0 0.6cqi #fff8;
+    box-shadow: 0 0 0 0.6cqi #0003;
   }
 
   @keyframes shake {

@@ -5,7 +5,7 @@
   import { PALETTE } from "../lib/colors.js";
   import { ms } from "../lib/motion.js";
 
-  // Narrow on the left, wide on the right: less of the target color to more.
+  // A straight arrow in the target color, pointing from less of it to more.
   // Once revealed, it bends into a line graph of the amounts, one point above
   // each card, so every drop to the right is a pair in the wrong order.
   let { color, values = null, perfect = false, line = null, delay = 0 } = $props();
@@ -111,7 +111,8 @@
 
     const head = mix(flatHead, Math.max(12, flatHead * 0.6));
     const end = width - head;
-    const thickness = (x) => mix(2, 2.5) + (mix(flatHead * 0.87, head * 0.45) - mix(2, 2.5)) * Math.max(0, x / end);
+    // One thickness along the whole shaft, so the arrow reads as a straight printed bar.
+    const shaft = mix(flatHead * 0.36, Math.max(4, flatHead * 0.2));
     const base = height - head / 2;
     const rise = Math.max(0, base - head / 2 + mix(0, Math.min(room, 140)));
     const y = (h) => base - h * rise;
@@ -130,14 +131,14 @@
     };
     const path = [[0, at(0)], ...points.filter(([x]) => x > 0 && x < end), [end, at(end)]];
 
-    const top = path.map(([x, py]) => `${x},${py - thickness(x) / 2}`);
-    const bottom = path.map(([x, py]) => `${x},${py + thickness(x) / 2}`).reverse();
+    const top = path.map(([x, py]) => `${x},${py - shaft / 2}`);
+    const bottom = path.map(([x, py]) => `${x},${py + shaft / 2}`).reverse();
     const segments = path.slice(1).map(([x, py], i) => ({
       x1: path[i][0],
       y1: path[i][1],
       x2: x,
       y2: py,
-      width: thickness(path[i][0]),
+      width: shaft,
     }));
     const tipY = at(end);
     // Follow the segment entering the head, including when it is clipped by scrolling.
@@ -173,7 +174,7 @@
 >
   <div class="gauge" bind:clientHeight={flatHead}></div>
   {#if width}
-    <svg viewBox="0 0 {width} {height}" style:--fill={PALETTE[color]}>
+    <svg viewBox="0 0 {width} {height}" style:--fill={PALETTE[color]} style:--rim={color === "blue" ? "var(--card-paper)" : "transparent"}>
       <defs>
         <mask id="{uid}-mask" maskUnits="userSpaceOnUse" x="0" y={-room - 20} width={width} height={height + room + 40}>
           {@render arrow("#fff")}
@@ -184,6 +185,8 @@
           <stop offset="1" stop-color="#fff" stop-opacity="0" />
         </linearGradient>
       </defs>
+      <!-- The blue ink is too dark to see on the board alone, so in a blue round the arrow gets a paper rim, like the cards. -->
+      <g class="rim">{@render arrow("var(--rim)", 1.5)}</g>
       {@render arrow("var(--fill)")}
       {#if perfect && settled}
         <g mask="url(#{uid}-mask)">
@@ -194,12 +197,12 @@
   {/if}
 </div>
 
-{#snippet arrow(fill)}
-  <polygon points={shape.band} style:fill={fill} />
+{#snippet arrow(fill, rim = 0)}
+  <polygon points={shape.band} style:fill={fill} style:stroke={rim ? fill : null} stroke-width={rim * 2} />
   {#each shape.segments as s, i (i)}
-    <line x1={s.x1} y1={s.y1} x2={s.x2} y2={s.y2} stroke-width={s.width} style:stroke={fill} />
+    <line x1={s.x1} y1={s.y1} x2={s.x2} y2={s.y2} stroke-width={s.width + rim * 2} style:stroke={fill} />
   {/each}
-  <polygon points={shape.tip} style:fill={fill} />
+  <polygon points={shape.tip} style:fill={fill} style:stroke={rim ? fill : null} stroke-width={rim * 2} />
 {/snippet}
 
 <style>
@@ -233,6 +236,10 @@
 
   line {
     stroke-linecap: round;
+  }
+
+  polygon {
+    stroke-linejoin: round;
   }
 
   .sheen {

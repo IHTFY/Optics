@@ -8,7 +8,7 @@ const icons = [
     sizes: `${size}x${size}`,
     type: "image/png",
   })),
-  // Made by scripts/maskable-icon.mjs: the art inside the safe zone on a full background.
+  // Made by scripts/icons.mjs: the art inside the safe zone on a full background.
   { src: "/images/icons/icon-maskable-512x512.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
 ];
 
@@ -25,12 +25,12 @@ export default defineConfig({
         id: "/",
         start_url: "/",
         display: "standalone",
-        background_color: "#202125",
-        theme_color: "#202125",
+        background_color: "#181a1e",
+        theme_color: "#fdeacc",
         icons,
       },
       workbox: {
-        globPatterns: ["**/*.{js,css,html,png}"],
+        globPatterns: ["**/*.{js,css,html,png,woff2}"],
         navigateFallback: "/index.html",
         cleanupOutdatedCaches: true,
         clientsClaim: true,

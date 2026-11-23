@@ -1,4 +1,5 @@
 import { mount } from "svelte";
+import "@fontsource/anton/latin-400.css";
 import "./app.css";
 import App from "./App.svelte";
 import { loadForBuyer } from "./lib/ads.js";

@@ -27,7 +27,7 @@ test("the maskable icon fills the square and keeps its art in the safe zone", as
     return { width: image.width, height: image.height, background, transparent, reach };
   });
 
-  expect(icon).toMatchObject({ width: 512, height: 512, background: [0x20, 0x21, 0x25, 255], transparent: 0 });
+  expect(icon).toMatchObject({ width: 512, height: 512, background: [0x18, 0x1a, 0x1e, 255], transparent: 0 });
   // The art is there, and all of it is inside the circle.
   expect(icon.reach).toBeGreaterThan(0.25 * 512);
   expect(icon.reach).toBeLessThanOrEqual((33 / 108) * 512);

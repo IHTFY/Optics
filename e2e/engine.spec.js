@@ -107,3 +107,68 @@ test("card art color shares are balanced and widely spread", async ({ page }) =>
   expect(colorsPresent.filter((k) => k >= 3).length / n).toBeGreaterThan(0.85);
   expect(Math.min(...colorsPresent)).toBeGreaterThanOrEqual(2);
 });
+
+// Twisted rays from any point on the card, in any widths, cover the whole card.
+test("twisted rays leave no part of the card unpainted", async ({ page }) => {
+  await page.goto("/");
+  const unpainted = await page.evaluate(async () => {
+    const { CARD_WIDTH: W, CARD_HEIGHT: H } = await import("/src/lib/card.js");
+    const { rays } = await import("/src/lib/art.js");
+    const { createRng } = await import("/src/lib/rng.js");
+    const canvas = document.createElement("canvas");
+    canvas.width = W;
+    canvas.height = H;
+    const ctx = canvas.getContext("2d", { willReadFrequently: true });
+    const rng = createRng(11);
+    const worst = [];
+    for (let s = 0; s < 30; s++) {
+      ctx.clearRect(0, 0, W, H);
+      const bands = ["red", "blue", "yellow"].map((c) => ({ c, wt: rng.range(0.05, 1) }));
+      const twist = rng.pick([1, -1]) * rng.range(2, 4);
+      const cx = W / 2 + rng.range(-W * 0.2, W * 0.2);
+      const cy = H / 2 + rng.range(-H * 0.2, H * 0.2);
+      rays(ctx, cx, cy, bands, rng.int(1, 3), twist, rng.range(0, 2 * Math.PI), Math.hypot(W, H), 96);
+      const { data } = ctx.getImageData(0, 0, W, H);
+      let clear = 0;
+      for (let i = 3; i < data.length; i += 4) if (data[i] < 128) clear++;
+      worst.push(clear / (W * H));
+    }
+    return Math.max(...worst);
+  });
+  expect(unpainted).toBeLessThan(0.001);
+});
+
+// Each pattern on its own already makes a card worth judging: two or more colors, none covering it all.
+test("every card pattern draws several colors", async ({ page }) => {
+  test.setTimeout(90_000);
+  await page.goto("/");
+  const results = await page.evaluate(async () => {
+    const { CARD_WIDTH: W, CARD_HEIGHT: H } = await import("/src/lib/card.js");
+    const { PATTERNS, makePalette } = await import("/src/lib/art.js");
+    const { classify } = await import("/src/lib/quantize.js");
+    const { createRng } = await import("/src/lib/rng.js");
+    const { inkCss, COLORS } = await import("/src/lib/colors.js");
+    const canvas = document.createElement("canvas");
+    canvas.width = W;
+    canvas.height = H;
+    const ctx = canvas.getContext("2d", { willReadFrequently: true });
+    return PATTERNS.map(([pattern]) => {
+      const draws = [];
+      for (let s = 1; s <= 40; s++) {
+        ctx.fillStyle = inkCss("background");
+        ctx.fillRect(0, 0, W, H);
+        const rng = createRng(s * 7907 + 3);
+        pattern(ctx, rng, W, H, makePalette(rng));
+        const { counts } = classify(ctx.getImageData(0, 0, W, H).data);
+        draws.push(COLORS.map((c) => counts[c] / (W * H)));
+      }
+      return { name: pattern.name, draws };
+    });
+  });
+
+  for (const { name, draws } of results) {
+    const several = draws.filter((shares) => shares.filter((v) => v >= 0.01).length >= 2).length;
+    expect(several / draws.length, name).toBeGreaterThanOrEqual(0.9);
+    for (const shares of draws) expect(Math.max(...shares), name).toBeLessThan(0.98);
+  }
+});

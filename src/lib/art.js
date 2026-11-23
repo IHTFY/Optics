@@ -58,7 +58,7 @@ function colorsPresent(ctx, w, h) {
 // ---------------------------------------------------------------------------
 // Palette: a shuffled color order plus random per-card weights.
 
-function makePalette(rng) {
+export function makePalette(rng) {
   const order = rng.shuffle(COLORS);
   // Some cards only use three colors; the dropped one is random.
   const colors = rng.chance(0.2) ? order.slice(0, 3) : order;
@@ -301,40 +301,12 @@ function rings(ctx, rng, w, h, pal) {
 
 function sunburst(ctx, rng, w, h, pal) {
   const bands = pal.seq(rng.pick([2, 3, 3, 3, 4, 4, 4, 4]), 0.4);
-  const total = bands.reduce((s, b) => s + b.wt, 0);
   const cx = rng.chance(0.5) ? w / 2 : rng.range(0, w);
   const cy = rng.chance(0.4) ? h / 2 : rng.pick([rng.range(0, h), -rng.range(0, 60), h + rng.range(0, 60)]);
   const reps = rng.int(3, 14);
   const R = Math.hypot(w, h) * 1.1;
   const twist = rng.chance(0.3) ? rng.range(-1.2, 1.2) : 0; // curved rays
-  let a = rng.range(0, TAU);
-  const step = TAU / reps;
-  for (let k = 0; k < reps; k++) {
-    for (const b of bands) {
-      const span = (step * b.wt) / total;
-      ctx.beginPath();
-      ctx.moveTo(cx, cy);
-      if (twist) {
-        const n = 16;
-        for (let j = 1; j <= n; j++) {
-          const t = j / n;
-          const aa = a + twist * t;
-          ctx.lineTo(cx + R * t * Math.cos(aa), cy + R * t * Math.sin(aa));
-        }
-        for (let j = n; j >= 1; j--) {
-          const t = j / n;
-          const aa = a + span + 0.01 + twist * t;
-          ctx.lineTo(cx + R * t * Math.cos(aa), cy + R * t * Math.sin(aa));
-        }
-      } else {
-        ctx.arc(cx, cy, R, a, a + span + 0.01);
-      }
-      ctx.closePath();
-      fillWith(ctx, b.c);
-      ctx.fill();
-      a += span;
-    }
-  }
+  rays(ctx, cx, cy, bands, reps, twist, rng.range(0, TAU), R, 16);
   // A hub hides the busy convergence point.
   if (reps > 5 || rng.chance(0.5)) {
     const hub = rng.range(20, 90);
@@ -346,6 +318,39 @@ function sunburst(ctx, rng, w, h, pal) {
       ctx.beginPath();
       SHAPES.circle(ctx, cx, cy, hub * 0.55);
       solid(ctx, cols[1].c);
+    }
+  }
+}
+
+/** Fan of ray wedges around (cx, cy), optionally curved by `twist` radians. */
+export function rays(ctx, cx, cy, bands, reps, twist, a, R, steps) {
+  const total = bands.reduce((s, b) => s + b.wt, 0);
+  const step = TAU / reps;
+  for (let k = 0; k < reps; k++) {
+    for (const b of bands) {
+      const span = (step * b.wt) / total;
+      ctx.beginPath();
+      ctx.moveTo(cx, cy);
+      if (twist) {
+        for (let j = 1; j <= steps; j++) {
+          const t = j / steps;
+          const aa = a + twist * t;
+          ctx.lineTo(cx + R * t * Math.cos(aa), cy + R * t * Math.sin(aa));
+        }
+        // Round the outer end, so a wide band isn't cut off by a straight line across the card.
+        ctx.arc(cx, cy, R, a + twist, a + span + 0.01 + twist);
+        for (let j = steps - 1; j >= 1; j--) {
+          const t = j / steps;
+          const aa = a + span + 0.01 + twist * t;
+          ctx.lineTo(cx + R * t * Math.cos(aa), cy + R * t * Math.sin(aa));
+        }
+      } else {
+        ctx.arc(cx, cy, R, a, a + span + 0.01);
+      }
+      ctx.closePath();
+      fillWith(ctx, b.c);
+      ctx.fill();
+      a += span;
     }
   }
 }
@@ -765,24 +770,206 @@ function drawMotif(ctx, rng, kind, x, y, r, col, pal, rot = 0) {
   ctx.restore();
 }
 
+// ---------------------------------------------------------------------------
+// Printed arches, lenses and pinwheels: the main family of card faces.
+
+/** Arch standing on `bottom`: legs from the bottom edge up to a half circle around (cx, cy). */
+function archPath(ctx, cx, cy, r, bottom) {
+  ctx.beginPath();
+  ctx.moveTo(cx - r, bottom + 4);
+  ctx.lineTo(cx - r, cy);
+  ctx.arc(cx, cy, r, Math.PI, 0);
+  ctx.lineTo(cx + r, bottom + 4);
+  ctx.closePath();
+}
+
+/** Bands of `bands`, `period` px per full set, from radius `from` inward until `to`. */
+function nested(rng, bands, from, to, period, draw) {
+  const total = bands.reduce((s, b) => s + b.wt, 0);
+  let r = from;
+  let i = rng.int(0, bands.length - 1);
+  while (r > to) {
+    const b = bands[i++ % bands.length];
+    draw(r, b.c);
+    r -= Math.max(MIN + 1, (period * b.wt) / total);
+  }
+}
+
+function arches(ctx, rng, w, h, pal) {
+  // Stacks of nested arch bands rising from the bottom edge. Later stacks
+  // stand lower, so they overlap the ones behind them.
+  fillAll(ctx, pal.pick(), w, h);
+  const n = rng.pick([1, 2, 2, 3, 3, 4]);
+  const flip = rng.chance(0.2); // hanging from the top instead
+  ctx.save();
+  if (flip) {
+    ctx.translate(w, h);
+    ctx.rotate(Math.PI);
+  }
+  for (let i = 0; i < n; i++) {
+    const bands = pal.seq(rng.pick([2, 3, 3, 4, 4]), 0.5);
+    const R = rng.range(w * 0.3, w * (n === 1 ? 0.8 : 0.6));
+    const cx = n === 1 ? w / 2 + rng.range(-w * 0.15, w * 0.15) : rng.range(w * 0.05, w * 0.95);
+    const apex = n === 1 ? rng.range(h * 0.02, h * 0.35) : h * ((i / n) * 0.7 + rng.range(-0.1, 0.15));
+    const period = rng.range(R * 0.3, R * 0.9);
+    const core = rng.chance(0.5) ? rng.range(MIN * 3, R * 0.3) : 0;
+    nested(rng, bands, R, core, period, (r, c) => {
+      archPath(ctx, cx, apex + R, r, h);
+      fillWith(ctx, c);
+      ctx.fill();
+    });
+  }
+  ctx.restore();
+}
+
+function scallops(ctx, rng, w, h, pal) {
+  // Rows of arches, each row laid over the one above it, so only a band of
+  // every arch shows.
+  const bands = pal.seq(rng.pick([2, 3, 3, 4, 4, 4]), 0.5);
+  const total = bands.reduce((s, b) => s + b.wt, 0);
+  const across = rng.pick([1, 1, 1, 2, 2, 3]);
+  const aw = w / across;
+  const R = aw * rng.range(0.5, across === 1 ? 1.4 : 0.8);
+  const period = rng.range(60, 220);
+  const offset = across > 1 && rng.chance(0.5);
+  const flip = rng.chance(0.25);
+  ctx.save();
+  if (flip) {
+    ctx.translate(w, h);
+    ctx.rotate(Math.PI);
+  }
+  fillAll(ctx, bands[0].c, w, h);
+  let y = -rng.range(0, period);
+  let i = 0;
+  let row = 0;
+  while (y < h) {
+    const b = bands[i++ % bands.length];
+    const shift = offset && row % 2 ? aw / 2 : 0;
+    fillWith(ctx, b.c);
+    for (let k = -1; k <= across; k++) {
+      ctx.beginPath();
+      SHAPES.circle(ctx, aw * (k + 0.5) + shift, y + R, R);
+      ctx.fill();
+    }
+    y += Math.max(MIN + 1, (period * b.wt) / total);
+    if (i % bands.length === 0) row++;
+  }
+  ctx.restore();
+}
+
+function rainbow(ctx, rng, w, h, pal) {
+  // Broad concentric bands around a point on the card's edge or corner.
+  const bands = pal.seq(rng.pick([3, 3, 4, 4, 4]), 0.6);
+  const [cx, cy] = rng.pick([
+    [w / 2, h],
+    [w / 2, h],
+    [w / 2, 0],
+    [0, h],
+    [w, h],
+    [0, 0],
+    [w, 0],
+  ]);
+  const far = Math.max(Math.hypot(cx, cy), Math.hypot(w - cx, cy), Math.hypot(cx, h - cy), Math.hypot(w - cx, h - cy));
+  const period = rng.range(120, 360);
+  nested(rng, bands, far + 2, 0, period, (r, c) => {
+    ctx.beginPath();
+    SHAPES.circle(ctx, cx, cy, r);
+    fillWith(ctx, c);
+    ctx.fill();
+  });
+}
+
+function lens(ctx, rng, w, h, pal) {
+  // Concentric lens shapes (each the overlap of two circles), like an open
+  // eye; some wedges swap the band colors so the bands break into shapes.
+  const bands = pal.seq(rng.pick([3, 3, 4, 4, 4]), 0.6);
+  const across = rng.chance(0.75); // eye opens left to right
+  const [W, H] = across ? [w, h] : [h, w];
+  const cx = W / 2 + rng.range(-W * 0.1, W * 0.1);
+  const cy = H / 2 + rng.range(-H * 0.1, H * 0.1);
+  const D = rng.range(0.25, 0.8) * W;
+  const period = rng.range(100, 260);
+  const rings = [];
+  nested(rng, bands, D + Math.hypot(W, H) * 0.7, D + MIN, period, (r, c) => rings.push([r, c]));
+  ctx.save();
+  if (!across) {
+    ctx.translate(w, 0);
+    ctx.rotate(Math.PI / 2);
+  }
+  const paint = (recolor) => {
+    for (const [r, c] of rings) {
+      ctx.save();
+      ctx.beginPath();
+      SHAPES.circle(ctx, cx, cy - D, r);
+      ctx.clip();
+      ctx.beginPath();
+      SHAPES.circle(ctx, cx, cy + D, r);
+      fillWith(ctx, recolor(c));
+      ctx.fill();
+      ctx.restore();
+    }
+  };
+  fillAll(ctx, rings[0][1], W, H);
+  paint((c) => c);
+  if (rng.chance(0.75)) {
+    const names = bands.map((b) => b.c);
+    const swap = (c) => names[(names.indexOf(c) + 1) % names.length];
+    const sectors = rng.pick([2, 4, 4, 6]);
+    const a0 = sectors === 2 ? Math.PI / 2 : rng.pick([0, Math.PI / sectors]);
+    const R = Math.hypot(W, H);
+    ctx.beginPath();
+    for (let k = 0; k < sectors; k += 2) {
+      ctx.moveTo(cx, cy);
+      ctx.arc(cx, cy, R, a0 + (k * TAU) / sectors, a0 + ((k + 1) * TAU) / sectors);
+      ctx.closePath();
+    }
+    ctx.clip();
+    fillAll(ctx, swap(rings[0][1]), W, H);
+    paint(swap);
+  }
+  ctx.restore();
+}
+
+function pinwheel(ctx, rng, w, h, pal) {
+  // Strongly curved rays sweeping out from a point near the middle.
+  const bands = pal.seq(rng.pick([3, 3, 4, 4, 4]), 0.6);
+  const cx = w / 2 + rng.range(-w * 0.2, w * 0.2);
+  const cy = h / 2 + rng.range(-h * 0.2, h * 0.2);
+  const twist = rng.pick([1, -1]) * rng.range(2, 4);
+  rays(ctx, cx, cy, bands, rng.int(1, 3), twist, rng.range(0, TAU), Math.hypot(w, h), 96);
+  if (rng.chance(0.4)) {
+    ctx.beginPath();
+    SHAPES.circle(ctx, cx, cy, rng.range(14, 40));
+    solid(ctx, pal.any());
+  }
+}
+
 // Patterns, with relative frequency.
-const PATTERNS = [
-  [stripes, 3],
-  [rings, 2.5],
-  [sunburst, 2],
-  [waves, 2.5],
-  [spiral, 1],
-  [tiles, 3],
-  [checker, 2],
-  [triangles, 1.5],
-  [mondrian, 2],
-  [bubbles, 2],
-  [venn, 1.5],
-  [motifs, 2.5],
+export const PATTERNS = [
+  [arches, 4],
+  [scallops, 3],
+  [rainbow, 2],
+  [lens, 3],
+  [pinwheel, 3],
+  [stripes, 1.5],
+  [rings, 1.25],
+  [sunburst, 1],
+  [waves, 1.25],
+  [spiral, 0.5],
+  [tiles, 1.5],
+  [checker, 1],
+  [triangles, 0.75],
+  [mondrian, 1],
+  [bubbles, 1],
+  [venn, 0.75],
+  [motifs, 1.25],
 ];
 
 // Patterns that work well as the fill of a hero shape or frame.
 const FILLS = [
+  [scallops, 3],
+  [rainbow, 2],
+  [pinwheel, 2],
   [stripes, 3],
   [rings, 2],
   [sunburst, 1],
@@ -932,8 +1119,8 @@ function frame(ctx, rng, w, h, pal) {
 }
 
 const LAYOUTS = [
-  [single, 5],
-  [hero, 3],
+  [single, 6],
+  [hero, 2],
   [split, 1],
   [frame, 1],
 ];
