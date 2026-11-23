@@ -90,14 +90,22 @@ test('reduced motion skips card collection', async ({ page }) => {
 test('only the blue arrow wears a paper rim, wide enough to show around it', async ({ page }) => {
   await page.goto('/');
   await expect(page.locator('.deck .slot')).toHaveCount(1);
-  const rim = page.locator('.wedge .rim polygon').first();
+  // Every part of the rim, the shaft, its segments, and the head, with how far it reaches past the arrow's own edge.
+  const rim = () =>
+    page.locator('.wedge svg').evaluate((svg) => {
+      const arrow = [...svg.querySelectorAll(':scope > polygon, :scope > line')];
+      return [...svg.querySelectorAll('.rim polygon, .rim line')].map((el, i) => {
+        const width = (e) => parseFloat(getComputedStyle(e).strokeWidth);
+        const past = el.tagName === 'line' ? width(el) - width(arrow[i]) : width(el);
+        return [el.tagName, getComputedStyle(el).stroke, past];
+      });
+    });
   for (const color of ['red', 'blue', 'yellow', 'cyan']) {
     await page.evaluate((c) => { window.__game.target = c; }, color);
-    await expect
-      .poll(() => rim.evaluate((p) => getComputedStyle(p).stroke), { message: color })
-      .toBe(color === 'blue' ? 'rgb(251, 244, 232)' : 'rgba(0, 0, 0, 0)');
-    if (color === 'blue') {
-      expect(await rim.evaluate((p) => parseFloat(getComputedStyle(p).strokeWidth))).toBeGreaterThanOrEqual(3);
-    }
+    const stroke = color === 'blue' ? 'rgb(251, 244, 232)' : 'rgba(0, 0, 0, 0)';
+    await expect.poll(async () => (await rim()).every(([, s]) => s === stroke), { message: color }).toBe(true);
+    const parts = await rim();
+    expect(parts.filter(([tag]) => tag === 'polygon'), color).toHaveLength(2);
+    if (color === 'blue') for (const part of parts) expect(part[2], JSON.stringify(part)).toBeGreaterThanOrEqual(3);
   }
 });
