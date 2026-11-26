@@ -65,8 +65,8 @@
       rotate 480ms cubic-bezier(0.3, 1.5, 0.5, 1),
       opacity 300ms ease;
     outline: 3px solid transparent;
-    /* Clear of the paper rim, so a verdict color never touches the art. */
-    outline-offset: calc(4cqi + 2px);
+    /* On the paper rim, off the art itself. Past the rim it would reach more than the gap between cards on a phone and paint over the next card's art. */
+    outline-offset: 2px;
     user-select: none;
     -webkit-user-select: none;
     -webkit-touch-callout: none;
