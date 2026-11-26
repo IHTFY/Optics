@@ -12,7 +12,7 @@ for (const [width, height] of SIZES) {
     await page.evaluate(() => {
       const game = window.__game;
       const card = game.line[0];
-      // Three cards in the wrong order, so the line holds both right and wrong cards.
+      // Four cards with two out of order, so the line holds both right and wrong cards.
       game.line = [5, 9, 1, 7].map((amount, i) => ({
         ...card, id: `ring-${i}`, counts: { ...card.counts, [game.target]: amount * 10000 },
       }));
