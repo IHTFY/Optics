@@ -136,20 +136,22 @@ for (const [width, height] of MOTION_SIZES) {
           if (document.querySelector(".line .face.knocked") === null) throw new Error("played order never showed");
           [...document.querySelectorAll("[aria-label='Line order'] button")].find((b) => b.textContent === "Sorted").click();
         }
-        // Hold the cards' own motion (shake, bump, lean) from its first frame, let the revealed line finish flying
-        // in, then step through that motion in fixed increments, so a slow machine can't skip the frames that matter.
+        // Hold the cards' own motion (shake, bump, lean), let the revealed line finish flying in, then step through
+        // that motion from its start in fixed increments, so a slow machine can't skip the frames that matter.
         const ownMotion = () => document.getAnimations().filter((a) => a.effect.target.matches(".line .face"));
         while (!ownMotion().some((a) => a.animationName?.endsWith("shake"))) await new Promise(requestAnimationFrame);
         const animations = ownMotion();
         animations.forEach((a) => a.pause());
-        const from = animations.map((a) => a.currentTime);
         const settled = () => !document.querySelector(".line .slot[inert]") &&
           [...document.querySelectorAll(".line .slot")].every((slot) => !slot.getAnimations().length);
         while (!settled()) await new Promise(requestAnimationFrame);
         const faces = [...document.querySelectorAll(".line .slot .face")];
-        let worst = { clear: Infinity, faces: faces.length };
+        const sortedPressed = [...document.querySelectorAll("[aria-label='Line order'] button")]
+          .find((b) => b.textContent === "Sorted").getAttribute("aria-pressed") === "true";
+        const order = faces.map((face) => parseFloat(face.querySelector(".stats").textContent.match(/[\d.]+/)[0]));
+        let worst = { clear: Infinity, faces: faces.length, sortedPressed, order };
         for (let t = 0; t <= 2500; t += 10) {
-          animations.forEach((a, i) => { a.currentTime = from[i] + t; });
+          animations.forEach((a) => { a.currentTime = t; });
           const shapes = faces.map(shape);
           for (let i = 1; i < shapes.length; i++) {
             const [a, b] = [shapes[i - 1], shapes[i]];
@@ -162,6 +164,8 @@ for (const [width, height] of MOTION_SIZES) {
       }, sorted);
 
       expect(worst.faces).toBe(amounts.length);
+      expect(worst.sortedPressed).toBe(sorted);
+      expect(worst.order).toEqual(sorted ? [...worst.order].sort((a, b) => a - b) : worst.order);
       expect(worst.clear, JSON.stringify(worst)).toBeGreaterThanOrEqual(0);
     });
   }
