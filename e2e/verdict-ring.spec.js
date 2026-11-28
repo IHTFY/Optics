@@ -74,7 +74,8 @@ for (const [width, height] of MOTION_SIZES) {
         const game = window.__game;
         const card = game.line[0];
         game.line = amounts.map((amount, i) => ({
-          ...card, id: `ring-${i}`, counts: { ...card.counts, [game.target]: amount * 10000 },
+          // The fragment names the card on the page without changing the image.
+          ...card, id: `ring-${i}`, src: `${card.src}#${amount}`, counts: { ...card.counts, [game.target]: amount * 10000 },
         }));
       }, amounts);
 
@@ -142,16 +143,19 @@ for (const [width, height] of MOTION_SIZES) {
         while (!ownMotion().some((a) => a.animationName?.endsWith("shake"))) await new Promise(requestAnimationFrame);
         const animations = ownMotion();
         animations.forEach((a) => a.pause());
+        // Each animation's place on the shared timeline, counted from the one that started first.
+        const from = animations.map((a) => a.currentTime);
+        const lead = Math.max(...from);
         const settled = () => !document.querySelector(".line .slot[inert]") &&
           [...document.querySelectorAll(".line .slot")].every((slot) => !slot.getAnimations().length);
         while (!settled()) await new Promise(requestAnimationFrame);
         const faces = [...document.querySelectorAll(".line .slot .face")];
         const sortedPressed = [...document.querySelectorAll("[aria-label='Line order'] button")]
           .find((b) => b.textContent === "Sorted").getAttribute("aria-pressed") === "true";
-        const order = faces.map((face) => parseFloat(face.querySelector(".stats").textContent.match(/[\d.]+/)[0]));
+        const order = faces.map((face) => Number(face.querySelector("img").getAttribute("src").split("#").pop()));
         let worst = { clear: Infinity, faces: faces.length, sortedPressed, order };
         for (let t = 0; t <= 2500; t += 10) {
-          animations.forEach((a) => { a.currentTime = t; });
+          animations.forEach((a, i) => { a.currentTime = from[i] - lead + t; });
           const shapes = faces.map(shape);
           for (let i = 1; i < shapes.length; i++) {
             const [a, b] = [shapes[i - 1], shapes[i]];
@@ -165,7 +169,7 @@ for (const [width, height] of MOTION_SIZES) {
 
       expect(worst.faces).toBe(amounts.length);
       expect(worst.sortedPressed).toBe(sorted);
-      expect(worst.order).toEqual(sorted ? [...worst.order].sort((a, b) => a - b) : worst.order);
+      expect(worst.order).toEqual(sorted ? [...amounts].sort((a, b) => a - b) : amounts);
       expect(worst.clear, JSON.stringify(worst)).toBeGreaterThanOrEqual(0);
     });
   }
