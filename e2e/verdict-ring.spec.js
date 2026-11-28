@@ -142,10 +142,12 @@ for (const [width, height] of MOTION_SIZES) {
         const ownMotion = () => document.getAnimations().filter((a) => a.effect.target.matches(".line .face"));
         while (!ownMotion().some((a) => a.animationName?.endsWith("shake"))) await new Promise(requestAnimationFrame);
         const animations = ownMotion();
+        // Each animation's start on the shared timeline (a finished one's current time stops at its end, so it can't
+        // say when it started); the replay counts from the one that started first.
+        const now = document.timeline.currentTime;
+        const starts = animations.map((a) => a.startTime ?? now - a.currentTime);
         animations.forEach((a) => a.pause());
-        // Each animation's place on the shared timeline, counted from the one that started first.
-        const from = animations.map((a) => a.currentTime);
-        const lead = Math.max(...from);
+        const first = Math.min(...starts);
         const settled = () => !document.querySelector(".line .slot[inert]") &&
           [...document.querySelectorAll(".line .slot")].every((slot) => !slot.getAnimations().length);
         while (!settled()) await new Promise(requestAnimationFrame);
@@ -155,7 +157,7 @@ for (const [width, height] of MOTION_SIZES) {
         const order = faces.map((face) => Number(face.querySelector("img").getAttribute("src").split("#").pop()));
         let worst = { clear: Infinity, faces: faces.length, sortedPressed, order };
         for (let t = 0; t <= 2500; t += 10) {
-          animations.forEach((a, i) => { a.currentTime = from[i] - lead + t; });
+          animations.forEach((a, i) => { a.currentTime = first - starts[i] + t; });
           const shapes = faces.map(shape);
           for (let i = 1; i < shapes.length; i++) {
             const [a, b] = [shapes[i - 1], shapes[i]];
