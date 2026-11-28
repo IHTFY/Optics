@@ -129,7 +129,13 @@ for (const [width, height] of MOTION_SIZES) {
         };
 
         window.__game.challenge();
-        if (sorted) window.__game.toggleSorted();
+        if (sorted) {
+          // Show the line in played order first, as a player sees it before tapping Sorted.
+          await new Promise(requestAnimationFrame);
+          await new Promise(requestAnimationFrame);
+          if (document.querySelector(".line .face.knocked") === null) throw new Error("played order never showed");
+          [...document.querySelectorAll("[aria-label='Line order'] button")].find((b) => b.textContent === "Sorted").click();
+        }
         // Hold the cards' own motion (shake, bump, lean) from its first frame, let the revealed line finish flying
         // in, then step through that motion in fixed increments, so a slow machine can't skip the frames that matter.
         const ownMotion = () => document.getAnimations().filter((a) => a.effect.target.matches(".line .face"));
