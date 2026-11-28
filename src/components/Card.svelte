@@ -63,9 +63,10 @@
       outline-color 220ms ease,
       translate 480ms cubic-bezier(0.3, 1.5, 0.5, 1),
       rotate 480ms cubic-bezier(0.3, 1.5, 0.5, 1),
+      scale 220ms ease,
       opacity 300ms ease;
     outline: 3px solid transparent;
-    /* On the paper rim, off the art itself. Past the rim it would reach more than the gap between cards on a phone and paint over the next card's art. */
+    /* Just outside the art. On a phone this reaches past the paper rim, so wrong cards shrink (.knocked) to keep it off the next card's art. */
     outline-offset: 2px;
     user-select: none;
     -webkit-user-select: none;
@@ -107,11 +108,13 @@
     animation: shake 480ms calc(var(--order) * 90ms + 300ms) both;
   }
 
-  /* Knocked out of line, leaning the way it should have gone. */
+  /* Knocked out of line, leaning the way it should have gone. Shrinking before the shake starts keeps the shake, the
+     lean and the wider ring clear of the next card on a phone, where cards sit only 8px apart. */
   .knocked {
     translate: calc(var(--knock) * 3%) 5%;
     rotate: calc(var(--knock) * 3deg);
-    transition-delay: 0ms, 0ms, 0ms, var(--knock-delay), var(--knock-delay), 0ms;
+    scale: 0.88;
+    transition-delay: 0ms, 0ms, 0ms, var(--knock-delay), var(--knock-delay), 0ms, 0ms;
   }
 
   .dim {
