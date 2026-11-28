@@ -72,6 +72,10 @@ test('next round gathers cards and returns them to the deck before dealing', asy
   const collection = page.locator('[data-round-collection]');
   await expect(collection).toBeVisible();
   await expect(collection.locator('.card')).toHaveCount(9);
+  // Wrong cards are shrunk and leaning in the line; their copies gather at full size and upright like the rest.
+  const poses = await collection.locator('.face').evaluateAll((faces) =>
+    faces.map((face) => ['scale', 'translate', 'rotate'].map((p) => getComputedStyle(face)[p]).join(' ')));
+  expect(poses).toEqual(Array(9).fill('none none none'));
   await expect(page.getByRole('button', { name: 'Next round' })).toBeDisabled();
   await expect(page.locator('.line .slot').first()).toBeHidden();
   await expect(collection).toHaveCount(0);
