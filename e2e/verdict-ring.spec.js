@@ -56,11 +56,16 @@ for (const [width, height] of SIZES) {
 // Wrong cards shake and then lean out of line, so the layout check above isn't enough: follow each card's drawn
 // shape through that motion.
 const MOTION_SIZES = [[320, 568], [360, 640], [390, 844], [844, 390]];
-// Two next to each other that lean toward each other ([1, 9, 2, 8, 3]) are the tightest pair.
-const LINES = { "wrong cards side by side": [5, 9, 1, 7], "wrong cards leaning together": [1, 9, 2, 8, 3] };
+// Two next to each other that lean toward each other ([1, 9, 2, 8, 3]) are the tightest pair. Sorting the line before
+// the shake starts puts two wrong cards (8 and 9) side by side, shaking but no longer leaning.
+const LINES = {
+  "wrong cards side by side": { amounts: [5, 9, 1, 7] },
+  "wrong cards leaning together": { amounts: [1, 9, 2, 8, 3] },
+  "wrong cards sorted before they shake": { amounts: [1, 9, 2, 8, 3], sorted: true },
+};
 
 for (const [width, height] of MOTION_SIZES) {
-  for (const [name, amounts] of Object.entries(LINES)) {
+  for (const [name, { amounts, sorted = false }] of Object.entries(LINES)) {
     test(`verdict ring stays off the next card's art while ${name} move at ${width}x${height}`, async ({ page }) => {
       await page.setViewportSize({ width, height });
       await page.goto("/");
@@ -73,7 +78,7 @@ for (const [width, height] of MOTION_SIZES) {
         }));
       }, amounts);
 
-      const worst = await page.evaluate(async () => {
+      const worst = await page.evaluate(async (sorted) => {
         // Where a card face is drawn: its slot's place in the line, then the face's own translate, rotate, scale and
         // transform about its transform origin.
         const shape = (face) => {
@@ -124,6 +129,7 @@ for (const [width, height] of MOTION_SIZES) {
         };
 
         window.__game.challenge();
+        if (sorted) window.__game.toggleSorted();
         // Hold the cards' own motion (shake, bump, lean) from its first frame, let the revealed line finish flying
         // in, then step through that motion in fixed increments, so a slow machine can't skip the frames that matter.
         const ownMotion = () => document.getAnimations().filter((a) => a.effect.target.matches(".line .face"));
@@ -147,7 +153,7 @@ for (const [width, height] of MOTION_SIZES) {
           }
         }
         return worst;
-      });
+      }, sorted);
 
       expect(worst.faces).toBe(amounts.length);
       expect(worst.clear, JSON.stringify(worst)).toBeGreaterThanOrEqual(0);

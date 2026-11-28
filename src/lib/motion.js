@@ -42,7 +42,7 @@ export async function collectCards(line, deck) {
     clone.style.cssText = `position:absolute;left:${rect.left}px;top:${rect.top}px;width:${rect.width}px;height:${rect.height}px`;
     clone.setAttribute("aria-hidden", "true");
     const face = clone.querySelector(".face");
-    face.style.cssText = "animation:none;transition:none;translate:none;rotate:none;transform:none;opacity:1";
+    face.style.cssText = "animation:none;transition:none;translate:none;rotate:none;scale:none;transform:none;opacity:1";
     overlay.append(clone);
     const depth = Math.min(i, 8);
     const stackX = table.left + 12 + depth * 1.5 - rect.left;
